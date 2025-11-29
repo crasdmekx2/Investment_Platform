@@ -36,22 +36,38 @@ A Python project for investment management.
    cd investment-platform
    ```
 
-2. Create a virtual environment:
+2. Create and set up the virtual environment:
+   
+   **Option A: Use the automated setup script (Recommended)**
+   - On Windows (PowerShell):
+     ```powershell
+     .\setup_venv.ps1
+     ```
+   - On Windows (Command Prompt):
+     ```cmd
+     setup_venv.bat
+     ```
+   
+   **Option B: Manual setup**
    ```bash
-   python -m venv venv
+   python -m venv .venv
    ```
-
-3. Activate the virtual environment:
-   - On Windows:
-     ```bash
-     venv\Scripts\activate
+   
+   Then activate the virtual environment:
+   - On Windows (PowerShell):
+     ```powershell
+     .\.venv\Scripts\Activate.ps1
+     ```
+   - On Windows (Command Prompt):
+     ```cmd
+     .venv\Scripts\activate.bat
      ```
    - On macOS/Linux:
      ```bash
-     source venv/bin/activate
+     source .venv/bin/activate
      ```
 
-4. Install dependencies:
+3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    pip install -r requirements-dev.txt

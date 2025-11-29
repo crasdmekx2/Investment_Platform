@@ -1,3 +1,6 @@
 # Base dependencies for Investment Platform
 # Add your project dependencies here
 
+# Database connectivity
+psycopg2-binary>=2.9.0
+
