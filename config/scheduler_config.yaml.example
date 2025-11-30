@@ -1,0 +1,71 @@
+# Example scheduler configuration file
+# Copy this file to scheduler_config.yaml and customize as needed
+
+jobs:
+  # Daily stock data collection at 9 AM
+  - symbol: AAPL
+    asset_type: stock
+    job_id: daily_aapl
+    trigger:
+      type: cron
+      params:
+        hour: "9"
+        minute: "0"
+    start_date: null  # Will default to yesterday
+    end_date: null    # Will default to today
+
+  # Hourly crypto data collection
+  - symbol: BTC-USD
+    asset_type: crypto
+    job_id: hourly_btc
+    trigger:
+      type: interval
+      params:
+        hours: 1
+    start_date: null
+    end_date: null
+
+  # Daily forex rates at market open (8 AM)
+  - symbol: USD_EUR
+    asset_type: forex
+    job_id: daily_usd_eur
+    trigger:
+      type: cron
+      params:
+        hour: "8"
+        minute: "0"
+        day_of_week: "mon-fri"  # Weekdays only
+    start_date: null
+    end_date: null
+
+  # Weekly economic indicator update (Mondays at 10 AM)
+  - symbol: GDP
+    asset_type: economic_indicator
+    job_id: weekly_gdp
+    trigger:
+      type: cron
+      params:
+        hour: "10"
+        minute: "0"
+        day_of_week: "mon"
+    start_date: null
+    end_date: null
+    collector_kwargs:
+      # Additional kwargs for EconomicCollector
+      pass
+
+  # Custom asset metadata
+  - symbol: MSFT
+    asset_type: stock
+    job_id: daily_msft
+    trigger:
+      type: cron
+      params:
+        hour: "9"
+        minute: "0"
+    asset_metadata:
+      sector: "Technology"
+      industry: "Software"
+    start_date: null
+    end_date: null
+
