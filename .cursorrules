@@ -1,0 +1,91 @@
+# Cursor Rules for Investment Platform
+
+## UX Standards Reference
+
+**MANDATORY:** All front-end development work MUST adhere to the User Experience Standards document located at `docs/ux-standards.md`.
+
+When implementing any front-end feature, component, or user interface:
+
+1. **Always consult** the UX Standards document (`docs/ux-standards.md`) before writing code
+2. **Ensure compliance** with WCAG 2.2 AA accessibility standards
+3. **Follow** the component standards, interaction patterns, and design principles outlined in the UX Standards
+4. **Reference** the UX Expert role document (`roles/user-experience-expert.md`) for additional context
+5. **Use** the provided checklists and implementation examples as guidelines
+
+## Key Requirements
+
+### Accessibility (Non-Negotiable)
+- All implementations MUST meet WCAG 2.2 Level AA standards
+- Keyboard navigation must work for all interactive elements
+- Screen reader support with proper ARIA attributes
+- Color contrast: 4.5:1 for text, 3:1 for UI components
+- Touch targets: Minimum 44x44px for all interactive elements
+
+### Design Principles
+- User-centered design approach
+- Mobile-first responsive design
+- Clear visual hierarchy
+- Consistent design patterns
+- Progressive disclosure for complex information
+
+### Financial Platform Specific
+- Real-time data updates with proper feedback
+- Confirmation dialogs for all financial transactions
+- Clear error prevention and recovery patterns
+- Trust and security indicators
+- Financial data visualization with color + text + icons (never color alone)
+
+### Performance
+- Core Web Vitals targets: LCP < 2.5s, FID < 100ms, CLS < 0.1
+- Loading states for all async operations
+- Optimized images and code splitting
+
+## When Implementing Front-End Features
+
+Before writing any front-end code:
+
+1. **Review** the relevant section in `docs/ux-standards.md`
+2. **Check** existing components in `frontend/src/components/` for patterns
+3. **Ensure** accessibility requirements are met
+4. **Test** keyboard navigation and screen reader compatibility
+5. **Verify** responsive design works on mobile, tablet, and desktop
+6. **Use** the provided implementation examples as templates
+
+## Code Review Checklist
+
+When reviewing front-end code, verify:
+
+- [ ] WCAG 2.2 AA compliance
+- [ ] Keyboard accessibility
+- [ ] Screen reader compatibility
+- [ ] Color contrast standards met
+- [ ] Touch targets are 44x44px minimum
+- [ ] Mobile-first responsive design
+- [ ] Loading and error states implemented
+- [ ] Consistent with design system
+- [ ] Financial platform-specific requirements met
+- [ ] Performance considerations addressed
+
+## Reference Documents
+
+- **UX Standards**: `docs/ux-standards.md` (PRIMARY REFERENCE)
+- **UX Expert Role**: `roles/user-experience-expert.md`
+- **Front-End Engineer Role**: `roles/front-end-engineer.md`
+
+## Project Context
+
+This is an Investment Platform project with:
+- React + TypeScript front-end
+- Tailwind CSS for styling
+- Financial data visualization requirements
+- Real-time market data updates
+- Trading interface functionality
+- Portfolio management features
+
+All front-end work must prioritize:
+- User trust and security
+- Accessibility for all users
+- Performance and responsiveness
+- Clear financial data presentation
+- Error prevention for financial transactions
+
