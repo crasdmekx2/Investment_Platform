@@ -9,6 +9,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { path: '/', label: 'Dashboard' },
   { path: '/portfolio', label: 'Portfolio' },
+  { path: '/scheduler', label: 'Scheduler' },
 ];
 
 export function Sidebar() {
