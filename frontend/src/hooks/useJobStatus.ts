@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useWebSocket } from './useWebSocket';
 import { useCollectionStore } from '@/store/slices/collectionSlice';
 

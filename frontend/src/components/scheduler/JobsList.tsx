@@ -8,7 +8,7 @@ import { formatTrigger, getStatusColor } from '@/lib/utils/scheduler';
 import type { JobStatus, AssetType } from '@/types/scheduler';
 
 export function JobsList() {
-  const { jobs, isLoading, error, filters, setFilters, fetchJobs, pauseJob, resumeJob, deleteJob } = useSchedulerStore();
+  const { jobs, isLoading, error, setFilters, fetchJobs, pauseJob, resumeJob, deleteJob } = useSchedulerStore();
   const [selectedStatus, setSelectedStatus] = useState<JobStatus | ''>('');
   const [selectedAssetType, setSelectedAssetType] = useState<AssetType | ''>('');
 

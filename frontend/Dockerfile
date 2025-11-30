@@ -14,8 +14,9 @@ RUN npm ci
 COPY . .
 
 # Build arguments for environment variables
-ARG VITE_API_BASE_URL=http://api:8000/api
-ARG VITE_WS_URL=ws://api:8000/ws
+# Use relative path /api to leverage nginx proxy in production
+ARG VITE_API_BASE_URL=/api
+ARG VITE_WS_URL=ws://localhost:8000/ws
 
 # Set environment variables for build
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL

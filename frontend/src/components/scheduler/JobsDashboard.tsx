@@ -15,12 +15,10 @@ export function JobsDashboard() {
 
   const activeJobsCount = jobs.filter((j) => j.status === 'active').length;
   const pausedJobsCount = jobs.filter((j) => j.status === 'paused').length;
-  const failedJobsCount = jobs.filter((j) => j.status === 'failed').length;
   const runningJobsCount = Object.keys(activeJobs).length;
   
   const recentLogs = logs.slice(0, 10);
   const successCount = recentLogs.filter((l) => l.status === 'success').length;
-  const failureCount = recentLogs.filter((l) => l.status === 'failed').length;
   const successRate = recentLogs.length > 0 ? (successCount / recentLogs.length) * 100 : 0;
 
   if (isLoading) {

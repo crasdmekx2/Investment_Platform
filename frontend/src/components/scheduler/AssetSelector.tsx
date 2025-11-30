@@ -13,7 +13,7 @@ interface AssetSelectorProps {
   onNext: () => void;
 }
 
-export function AssetSelector({ assetType, selected, onSelect, onNext }: AssetSelectorProps) {
+export function AssetSelector({ assetType, selected, onSelect, onBack, onNext }: AssetSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [options, setOptions] = useState<AssetOption[]>([]);
   const [loading, setLoading] = useState(false);

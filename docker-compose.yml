@@ -54,8 +54,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: http://api:8000/api
-        VITE_WS_URL: ws://api:8000/ws
+        VITE_API_BASE_URL: /api
+        VITE_WS_URL: ws://localhost:8000/ws
     container_name: investment_platform_frontend
     ports:
       - "3000:80"
@@ -67,6 +67,32 @@ services:
       timeout: 10s
       retries: 3
       start_period: 5s
+    restart: unless-stopped
+    networks:
+      - investment-platform-network
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.scheduler
+    container_name: investment_platform_scheduler
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: investment_platform
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "from investment_platform.ingestion.persistent_scheduler import PersistentScheduler; import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
     networks:
       - investment-platform-network

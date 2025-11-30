@@ -36,3 +36,13 @@ services:
           cpus: '1'
           memory: 2G
 
+  scheduler:
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+

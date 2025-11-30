@@ -170,4 +170,146 @@ class PersistentScheduler(IngestionScheduler):
             error_message=error_message,
             execution_time_ms=execution_time_ms,
         )
+    
+    def add_job_from_database(self, job_id: str) -> bool:
+        """
+        Add a job from database to the scheduler.
+        Called when a job is created via API.
+        
+        Args:
+            job_id: Job identifier
+            
+        Returns:
+            True if job was added, False if not found or already exists
+        """
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    "SELECT * FROM scheduler_jobs WHERE job_id = %s",
+                    (job_id,),
+                )
+                job_row = cursor.fetchone()
+                
+                if not job_row:
+                    self.logger.warning(f"Job {job_id} not found in database")
+                    return False
+                
+                # Check if job is already in scheduler
+                try:
+                    existing_job = self.scheduler.get_job(job_id)
+                    if existing_job:
+                        self.logger.info(f"Job {job_id} already in scheduler")
+                        return True
+                except Exception:
+                    pass  # Job doesn't exist, continue
+                
+                # Only add if status is active or pending
+                job_dict = dict(job_row)
+                if job_dict["status"] not in ("active", "pending"):
+                    self.logger.info(f"Job {job_id} has status {job_dict['status']}, not adding to scheduler")
+                    return False
+                
+                try:
+                    self._load_job_from_row(job_dict)
+                    self.logger.info(f"Added job {job_id} to scheduler from database")
+                    return True
+                except Exception as e:
+                    self.logger.error(f"Failed to add job {job_id} to scheduler: {e}", exc_info=True)
+                    return False
+    
+    def remove_job_from_scheduler(self, job_id: str) -> bool:
+        """
+        Remove a job from the scheduler.
+        Called when a job is deleted via API.
+        
+        Args:
+            job_id: Job identifier
+            
+        Returns:
+            True if job was removed, False if not found
+        """
+        try:
+            self.scheduler.remove_job(job_id)
+            self.logger.info(f"Removed job {job_id} from scheduler")
+            return True
+        except Exception as e:
+            self.logger.warning(f"Failed to remove job {job_id} from scheduler: {e}")
+            return False
+    
+    def update_job_in_scheduler(self, job_id: str) -> bool:
+        """
+        Update a job in the scheduler by removing and re-adding it.
+        Called when a job is updated via API.
+        
+        Args:
+            job_id: Job identifier
+            
+        Returns:
+            True if job was updated, False if not found
+        """
+        # Remove existing job
+        self.remove_job_from_scheduler(job_id)
+        
+        # Re-add from database
+        return self.add_job_from_database(job_id)
+    
+    def pause_job_in_scheduler(self, job_id: str) -> bool:
+        """
+        Pause a job in the scheduler.
+        
+        Args:
+            job_id: Job identifier
+            
+        Returns:
+            True if job was paused, False if not found
+        """
+        try:
+            self.scheduler.pause_job(job_id)
+            self.logger.info(f"Paused job {job_id} in scheduler")
+            return True
+        except Exception as e:
+            self.logger.warning(f"Failed to pause job {job_id} in scheduler: {e}")
+            return False
+    
+    def resume_job_in_scheduler(self, job_id: str) -> bool:
+        """
+        Resume a paused job in the scheduler.
+        
+        Args:
+            job_id: Job identifier
+            
+        Returns:
+            True if job was resumed, False if not found
+        """
+        try:
+            self.scheduler.resume_job(job_id)
+            self.logger.info(f"Resumed job {job_id} in scheduler")
+            return True
+        except Exception as e:
+            self.logger.warning(f"Failed to resume job {job_id} in scheduler: {e}")
+            return False
+    
+    def trigger_job_now(self, job_id: str) -> bool:
+        """
+        Manually trigger a job execution immediately.
+        
+        Args:
+            job_id: Job identifier
+            
+        Returns:
+            True if job was triggered, False if not found
+        """
+        try:
+            job = self.scheduler.get_job(job_id)
+            if not job:
+                self.logger.warning(f"Job {job_id} not found in scheduler")
+                return False
+            
+            # Execute the job function directly
+            self.logger.info(f"Manually triggering job {job_id}")
+            job.func()
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to trigger job {job_id}: {e}", exc_info=True)
+            return False
 

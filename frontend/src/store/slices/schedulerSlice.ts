@@ -47,7 +47,8 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
       set({ jobs: response.data, isLoading: false });
     } catch (err) {
       const error = err as ApiError;
-      set({ error: error.message || 'Failed to fetch jobs', isLoading: false });
+      const errorMessage = error.message || 'Failed to load jobs. Please try refreshing the page.';
+      set({ error: errorMessage, isLoading: false });
     }
   },
 
@@ -58,7 +59,8 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
       set({ selectedJob: response.data, isLoading: false });
     } catch (err) {
       const error = err as ApiError;
-      set({ error: error.message || 'Failed to fetch job', isLoading: false });
+      const errorMessage = error.message || 'Failed to load job details. Please try again.';
+      set({ error: errorMessage, isLoading: false });
     }
   },
 
@@ -74,7 +76,8 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
       return newJob;
     } catch (err) {
       const error = err as ApiError;
-      set({ error: error.message || 'Failed to create job', isLoading: false });
+      const errorMessage = error.message || 'Failed to create job. Please check your input and try again.';
+      set({ error: errorMessage, isLoading: false });
       return null;
     }
   },
@@ -91,7 +94,8 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
       }));
     } catch (err) {
       const error = err as ApiError;
-      set({ error: error.message || 'Failed to update job', isLoading: false });
+      const errorMessage = error.message || 'Failed to update job. Please check your input and try again.';
+      set({ error: errorMessage, isLoading: false });
     }
   },
 
@@ -106,7 +110,8 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
       }));
     } catch (err) {
       const error = err as ApiError;
-      set({ error: error.message || 'Failed to delete job', isLoading: false });
+      const errorMessage = error.message || 'Failed to delete job. Please try again.';
+      set({ error: errorMessage, isLoading: false });
     }
   },
 
@@ -122,7 +127,8 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
       }));
     } catch (err) {
       const error = err as ApiError;
-      set({ error: error.message || 'Failed to pause job', isLoading: false });
+      const errorMessage = error.message || 'Failed to pause job. Please try again.';
+      set({ error: errorMessage, isLoading: false });
     }
   },
 
@@ -138,7 +144,8 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
       }));
     } catch (err) {
       const error = err as ApiError;
-      set({ error: error.message || 'Failed to resume job', isLoading: false });
+      const errorMessage = error.message || 'Failed to resume job. Please try again.';
+      set({ error: errorMessage, isLoading: false });
     }
   },
 
@@ -149,7 +156,8 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
       set({ isLoading: false });
     } catch (err) {
       const error = err as ApiError;
-      set({ error: error.message || 'Failed to trigger job', isLoading: false });
+      const errorMessage = error.message || 'Failed to trigger job. Please try again.';
+      set({ error: errorMessage, isLoading: false });
     }
   },
 

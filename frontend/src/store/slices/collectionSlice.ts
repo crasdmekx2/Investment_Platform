@@ -19,6 +19,7 @@ interface CollectionState {
     status?: string;
     start_date?: string;
     end_date?: string;
+    limit?: number;
   }) => Promise<void>;
   updateActiveJob: (jobId: string, updates: Partial<CollectResponse>) => void;
   removeActiveJob: (jobId: string) => void;
@@ -27,7 +28,7 @@ interface CollectionState {
   clearError: () => void;
 }
 
-export const useCollectionStore = create<CollectionState>((set, get) => ({
+export const useCollectionStore = create<CollectionState>((set) => ({
   activeJobs: {},
   executions: {},
   logs: [],

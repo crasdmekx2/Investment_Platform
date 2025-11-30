@@ -1,18 +1,14 @@
 import { useState } from 'react';
 import { Layout } from '@/components/layout/Layout';
-import { Card } from '@/components/common/Card';
-import { Button } from '@/components/common/Button';
 import { JobsList } from '@/components/scheduler/JobsList';
 import { JobsDashboard } from '@/components/scheduler/JobsDashboard';
 import { JobCreator } from '@/components/scheduler/JobCreator';
 import { CollectionLogsView } from '@/components/scheduler/CollectionLogsView';
-import { useScheduler } from '@/hooks/useScheduler';
 
 type Tab = 'dashboard' | 'jobs' | 'create' | 'logs';
 
 export function Scheduler() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
-  const scheduler = useScheduler();
 
   return (
     <Layout showSidebar={false}>

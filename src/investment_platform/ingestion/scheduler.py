@@ -100,6 +100,9 @@ class IngestionScheduler:
         
         # Create job function
         def ingestion_job():
+            import time
+            start_time = time.time()
+            
             self.logger.info(f"Executing scheduled ingestion for {symbol} ({asset_type})")
             
             # Calculate dates fresh at execution time
@@ -107,19 +110,35 @@ class IngestionScheduler:
             exec_end_date = job_end_date if job_end_date is not None else datetime.now()
             exec_start_date = job_start_date if job_start_date is not None else exec_end_date - timedelta(days=1)
             
-            result = self.ingestion_engine.ingest(
-                symbol=symbol,
-                asset_type=asset_type,
-                start_date=exec_start_date,
-                end_date=exec_end_date,
-                collector_kwargs=collector_kwargs,
-                asset_metadata=asset_metadata,
-            )
-            self.logger.info(
-                f"Completed scheduled ingestion for {symbol}: "
-                f"status={result['status']}, records={result['records_loaded']}"
-            )
-            return result
+            try:
+                result = self.ingestion_engine.ingest(
+                    symbol=symbol,
+                    asset_type=asset_type,
+                    start_date=exec_start_date,
+                    end_date=exec_end_date,
+                    collector_kwargs=collector_kwargs,
+                    asset_metadata=asset_metadata,
+                )
+                
+                # Calculate execution time
+                execution_time_ms = int((time.time() - start_time) * 1000)
+                result['execution_time_ms'] = execution_time_ms
+                
+                self.logger.info(
+                    f"Completed scheduled ingestion for {symbol}: "
+                    f"status={result['status']}, records={result['records_loaded']}, "
+                    f"time={execution_time_ms}ms"
+                )
+                return result
+            except Exception as e:
+                # Calculate execution time even on error
+                execution_time_ms = int((time.time() - start_time) * 1000)
+                self.logger.error(
+                    f"Failed scheduled ingestion for {symbol}: {e}",
+                    exc_info=True
+                )
+                # Re-raise to let APScheduler handle it
+                raise
         
         # Add job to scheduler
         self.scheduler.add_job(
@@ -335,13 +354,51 @@ class IngestionScheduler:
 
     def _job_listener(self, event):
         """Handle job execution events."""
+        import time
+        
+        job_id = event.job_id
+        execution_status = "success"
+        error_message = None
+        execution_time_ms = None
+        
         if event.exception:
+            execution_status = "failed"
+            error_message = str(event.exception)
             self.logger.error(
-                f"Job {event.job_id} failed with exception: {event.exception}",
+                f"Job {job_id} failed with exception: {event.exception}",
                 exc_info=event.exception,
             )
         else:
-            self.logger.debug(f"Job {event.job_id} executed successfully")
+            self.logger.debug(f"Job {job_id} executed successfully")
+        
+        # Get execution time and log_id from result if available
+        execution_time_ms = None
+        log_id = None
+        
+        if hasattr(event, 'retval') and isinstance(event.retval, dict):
+            # Get execution time from result (calculated in job function)
+            execution_time_ms = event.retval.get('execution_time_ms')
+            log_id = event.retval.get('log_id')
+        
+        # Fallback: try to calculate from event times if available
+        if execution_time_ms is None and hasattr(event, 'scheduled_run_time') and hasattr(event, 'run_time'):
+            try:
+                execution_time_ms = int((event.run_time - event.scheduled_run_time).total_seconds() * 1000)
+            except Exception:
+                pass
+        
+        # Record execution if this is a PersistentScheduler
+        if hasattr(self, 'record_execution'):
+            try:
+                self.record_execution(
+                    job_id=job_id,
+                    execution_status=execution_status,
+                    log_id=log_id,
+                    error_message=error_message,
+                    execution_time_ms=execution_time_ms,
+                )
+            except Exception as e:
+                self.logger.error(f"Failed to record execution for job {job_id}: {e}", exc_info=True)
 
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals."""

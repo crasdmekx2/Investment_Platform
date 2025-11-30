@@ -33,6 +33,16 @@ export function Header() {
             >
               Portfolio
             </Link>
+            <Link
+              to="/scheduler"
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                location.pathname === '/scheduler'
+                  ? 'bg-primary-100 text-primary-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              Scheduler
+            </Link>
           </nav>
         </div>
       </div>

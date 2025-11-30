@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import apiClient from '@/lib/api/client';
 import type { ApiError, ApiResponse } from '@/types/api';
 
 interface UseApiOptions<T> {
