@@ -64,8 +64,11 @@ def db_transaction(db_connection):
     Yields:
         psycopg2.connection: Database connection in transaction mode
     """
-    # Set isolation level to allow transactions
-    db_connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+    # Set isolation level to allow explicit transaction control
+    # Use READ_COMMITTED instead of AUTOCOMMIT to enable BEGIN/ROLLBACK
+    from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED
+    original_isolation = db_connection.isolation_level
+    db_connection.set_isolation_level(ISOLATION_LEVEL_READ_COMMITTED)
     
     # Start a transaction
     cursor = db_connection.cursor()
@@ -79,6 +82,6 @@ def db_transaction(db_connection):
     cursor.execute("ROLLBACK;")
     cursor.close()
     
-    # Reset to autocommit
-    db_connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+    # Reset to original isolation level
+    db_connection.set_isolation_level(original_isolation)
 

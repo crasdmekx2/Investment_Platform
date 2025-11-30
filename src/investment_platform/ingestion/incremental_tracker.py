@@ -103,13 +103,15 @@ class IncrementalTracker:
         # Check for gap before existing data
         if start_date < min_time:
             # Add range from start_date to just before min_time
-            gap_end = min_time - timedelta(days=1)
+            # Use minimal offset (microseconds) to exclude only the exact boundary point
+            gap_end = min_time - timedelta(microseconds=1)
             missing_ranges.append((start_date, gap_end))
         
         # Check for gap after existing data
         if end_date > max_time:
             # Add range from just after max_time to end_date
-            gap_start = max_time + timedelta(days=1)
+            # Use minimal offset (microseconds) to exclude only the exact boundary point
+            gap_start = max_time + timedelta(microseconds=1)
             # Ensure timezone consistency for gap_start
             if gap_start.tzinfo is None and end_date.tzinfo is not None:
                 from datetime import timezone

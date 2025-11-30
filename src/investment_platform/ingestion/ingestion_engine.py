@@ -258,9 +258,13 @@ class IngestionEngine:
                 if isinstance(end_date, str):
                     log_end_date = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
                 
+                # Get collector class name, handling unknown asset types
+                collector_class = self.COLLECTOR_MAP.get(asset_type)
+                collector_type_name = collector_class.__name__ if collector_class else "Unknown"
+                
                 self._log_collection_run(
                     asset_id=result["asset_id"],
-                    collector_type=self.COLLECTOR_MAP.get(asset_type, "Unknown").__name__,
+                    collector_type=collector_type_name,
                     start_date=log_start_date,
                     end_date=log_end_date,
                     records_collected=result["records_collected"],

@@ -93,20 +93,25 @@ class IngestionScheduler:
         if job_id is None:
             job_id = f"{asset_type}_{symbol}_{int(datetime.now().timestamp())}"
         
-        # Set default date range if not provided
-        if end_date is None:
-            end_date = datetime.now()
-        if start_date is None:
-            start_date = end_date - timedelta(days=1)
+        # Store date configuration (None means use defaults calculated at runtime)
+        # Dates are calculated fresh at execution time to support incremental collection
+        job_start_date = start_date
+        job_end_date = end_date
         
         # Create job function
         def ingestion_job():
             self.logger.info(f"Executing scheduled ingestion for {symbol} ({asset_type})")
+            
+            # Calculate dates fresh at execution time
+            # If dates were provided at job creation, use them; otherwise calculate defaults
+            exec_end_date = job_end_date if job_end_date is not None else datetime.now()
+            exec_start_date = job_start_date if job_start_date is not None else exec_end_date - timedelta(days=1)
+            
             result = self.ingestion_engine.ingest(
                 symbol=symbol,
                 asset_type=asset_type,
-                start_date=start_date,
-                end_date=end_date,
+                start_date=exec_start_date,
+                end_date=exec_end_date,
                 collector_kwargs=collector_kwargs,
                 asset_metadata=asset_metadata,
             )
@@ -295,9 +300,9 @@ class IngestionScheduler:
             start_date = None
             end_date = None
             
-            if "start_date" in job_config:
+            if "start_date" in job_config and job_config["start_date"] is not None:
                 start_date = datetime.fromisoformat(job_config["start_date"])
-            if "end_date" in job_config:
+            if "end_date" in job_config and job_config["end_date"] is not None:
                 end_date = datetime.fromisoformat(job_config["end_date"])
             
             # Add job
