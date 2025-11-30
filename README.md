@@ -85,6 +85,60 @@ Run the main application:
 python -m investment_platform.main
 ```
 
+## Database Setup
+
+### Prerequisites
+
+- Docker and Docker Compose installed
+- PostgreSQL with TimescaleDB extension (via Docker)
+
+### Initial Setup
+
+1. Start the database container:
+   ```bash
+   docker-compose up -d
+   ```
+   
+   Or use the setup script:
+   - On Windows (PowerShell):
+     ```powershell
+     .\setup_database.ps1
+     ```
+   - On Linux/macOS:
+     ```bash
+     ./setup_database.sh
+     ```
+
+2. Execute the database schema:
+   ```bash
+   python scripts/execute_schema.py
+   ```
+
+   This will create all tables, indexes, hypertables, functions, triggers, and policies.
+
+### Database Connection
+
+The database uses the following default connection parameters:
+- Host: `localhost`
+- Port: `5432`
+- Database: `investment_platform`
+- User: `postgres`
+- Password: `postgres`
+
+You can override these using environment variables:
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+
+### Testing Database Connectivity
+
+Test database connectivity:
+```bash
+python test_connection.py
+```
+
 ## Development
 
 ### Running Tests
@@ -94,10 +148,39 @@ Run all tests:
 pytest
 ```
 
+Run database tests only:
+```bash
+pytest tests/test_schema_verification.py
+pytest tests/test_data_integrity.py
+pytest tests/test_functions_triggers.py
+pytest tests/test_timescaledb_features.py
+pytest tests/test_index_performance.py
+pytest tests/test_sample_data.py
+pytest tests/test_data_quality.py
+```
+
 Run tests with coverage:
 ```bash
 pytest --cov=investment_platform --cov-report=html
 ```
+
+### Database Testing
+
+The test suite includes comprehensive database tests:
+
+1. **Schema Verification** (`test_schema_verification.py`): Verifies all database objects are created correctly
+2. **Data Integrity** (`test_data_integrity.py`): Tests constraints, foreign keys, and data validation
+3. **Functions & Triggers** (`test_functions_triggers.py`): Tests all database functions and triggers
+4. **TimescaleDB Features** (`test_timescaledb_features.py`): Verifies TimescaleDB-specific features
+5. **Index Performance** (`test_index_performance.py`): Verifies indexes and query performance
+6. **Sample Data** (`test_sample_data.py`): Integration tests with sample data
+7. **Data Quality** (`test_data_quality.py`): Data quality validation tests
+
+**Test Execution Order:**
+1. Ensure database is running: `docker-compose up -d`
+2. Execute schema: `python scripts/execute_schema.py`
+3. Run schema verification: `pytest tests/test_schema_verification.py -v`
+4. Run remaining tests: `pytest tests/ -v`
 
 ### Code Formatting
 
