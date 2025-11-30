@@ -74,7 +74,7 @@ Write-Host "  Password: postgres" -ForegroundColor White
 
 Write-Host ""
 Write-Host "To test connectivity, run:" -ForegroundColor Cyan
-Write-Host "  python test_connection.py" -ForegroundColor White
+Write-Host "  python tests/test_connection.py" -ForegroundColor White
 
 Write-Host ""
 Write-Host "To view logs:" -ForegroundColor Cyan

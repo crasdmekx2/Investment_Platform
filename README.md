@@ -6,6 +6,11 @@ A Python project for investment management.
 
 ```
 .
+├── frontend/              # React + TypeScript front-end application
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── vite.config.ts
 ├── src/
 │   └── investment_platform/
 │       ├── __init__.py
@@ -136,7 +141,7 @@ You can override these using environment variables:
 
 Test database connectivity:
 ```bash
-python test_connection.py
+python tests/test_connection.py
 ```
 
 ## Development
@@ -200,6 +205,88 @@ Type checking with mypy:
 ```bash
 mypy src/
 ```
+
+## Front-End Setup
+
+### Prerequisites
+
+- Node.js 18+ and npm (or yarn/pnpm)
+
+### Installation
+
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit `.env` and configure:
+   - `VITE_API_BASE_URL`: Backend API base URL (default: `http://localhost:8000/api`)
+   - `VITE_WS_URL`: WebSocket URL for real-time data (default: `ws://localhost:8000/ws`)
+
+### Development
+
+Start the development server:
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:3000`.
+
+### Building for Production
+
+Build the application:
+```bash
+npm run build
+```
+
+The production build will be in the `frontend/dist/` directory.
+
+Preview the production build:
+```bash
+npm run preview
+```
+
+### Front-End Development Tools
+
+**Linting:**
+```bash
+npm run lint
+```
+
+**Formatting:**
+```bash
+npm run format
+npm run format:check
+```
+
+**Testing:**
+```bash
+npm run test
+npm run test:ui
+npm run test:coverage
+```
+
+### Front-End Tech Stack
+
+- **React 18** - UI library
+- **TypeScript** - Type safety
+- **Vite** - Build tool and dev server
+- **Tailwind CSS** - Utility-first CSS framework
+- **React Router** - Client-side routing
+- **Zustand** - State management
+- **Axios** - HTTP client
+- **Vitest** - Testing framework
+- **React Testing Library** - Component testing
 
 ## License
 

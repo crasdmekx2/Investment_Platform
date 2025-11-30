@@ -65,7 +65,7 @@ echo "  Password: postgres"
 
 echo ""
 echo "To test connectivity, run:"
-echo "  python test_connection.py"
+echo "  python tests/test_connection.py"
 
 echo ""
 echo "To view logs:"
