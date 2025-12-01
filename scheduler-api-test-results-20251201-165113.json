@@ -1,0 +1,91 @@
+{
+  "test_run": {
+    "start_time": "2025-12-01T16:51:06.755364",
+    "end_time": "2025-12-01T16:51:13.178241",
+    "total_tests": 3,
+    "passed": 2,
+    "failed": 1,
+    "skipped": 0
+  },
+  "results": [
+    {
+      "test_id": "TEST-003",
+      "test_name": "Forex - Full History",
+      "status": "PASS",
+      "start_time": "2025-12-01T16:51:06.755364",
+      "end_time": "2025-12-01T16:51:08.903438",
+      "duration_seconds": 2.148074,
+      "error_message": null,
+      "verification_results": {
+        "execution": {
+          "status": "PASS",
+          "execution_id": 91,
+          "log_id": 89,
+          "records_collected": 1,
+          "log_status": "success"
+        }
+      },
+      "job_id": "forex_USD_EUR_1764625867_c87ba495",
+      "execution_id": 91,
+      "log_id": 89,
+      "records_collected": 1,
+      "data_verification": {
+        "status": "PASS",
+        "count": 1,
+        "expected_min": 1,
+        "asset_id": 8,
+        "table": "forex_rates"
+      }
+    },
+    {
+      "test_id": "TEST-004",
+      "test_name": "Bond - Full History",
+      "status": "PASS",
+      "start_time": "2025-12-01T16:51:08.903438",
+      "end_time": "2025-12-01T16:51:11.047773",
+      "duration_seconds": 2.144335,
+      "error_message": null,
+      "verification_results": {
+        "execution": {
+          "status": "PASS",
+          "execution_id": 92,
+          "log_id": 90,
+          "records_collected": 19,
+          "log_status": "success"
+        }
+      },
+      "job_id": "bond_DGS10_1764625868_785ff4d9",
+      "execution_id": 92,
+      "log_id": 90,
+      "records_collected": 18,
+      "data_verification": {
+        "status": "PASS",
+        "count": 18,
+        "expected_min": 1,
+        "asset_id": 5,
+        "table": "bond_rates"
+      }
+    },
+    {
+      "test_id": "TEST-005",
+      "test_name": "Commodity - Full History",
+      "status": "FAIL",
+      "start_time": "2025-12-01T16:51:11.047773",
+      "end_time": "2025-12-01T16:51:13.176350",
+      "duration_seconds": 2.128577,
+      "error_message": "Execution status is failed, expected 'success'",
+      "verification_results": {
+        "execution": {
+          "status": "FAIL",
+          "error": "Execution status is failed, expected 'success'",
+          "error_message": "Collected 1 records but failed to load any into database. Data may have been invalid or database insertion failed."
+        }
+      },
+      "job_id": "commodity_CL=F_1764625870_b5cc96c6",
+      "execution_id": 93,
+      "log_id": 91,
+      "records_collected": 0,
+      "data_verification": {}
+    }
+  ]
+}

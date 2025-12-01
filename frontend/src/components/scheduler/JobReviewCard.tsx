@@ -61,7 +61,16 @@ export function JobReviewCard({
 
         <div>
           <h3 className="text-sm font-medium text-gray-500">Schedule</h3>
-          <p className="text-lg font-semibold text-gray-900">{formatTrigger(triggerConfig)}</p>
+          {triggerConfig.execute_now ? (
+            <div>
+              <p className="text-lg font-semibold text-gray-900">Execute Now (One-time)</p>
+              <p className="mt-1 text-sm text-blue-600 font-medium">
+                ⚡ Will execute immediately after creation - no recurring schedule
+              </p>
+            </div>
+          ) : (
+            <p className="text-lg font-semibold text-gray-900">{formatTrigger(triggerConfig)}</p>
+          )}
         </div>
 
         <div>

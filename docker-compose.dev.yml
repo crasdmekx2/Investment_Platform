@@ -1,13 +1,15 @@
 # Development overrides for docker-compose.yml
-version: '3.8'
+# This file enables hot-reload and volume mounts for development
+# Use: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 services:
   api:
     environment:
       API_RELOAD: "true"
     volumes:
-      - ./src:/app/src:ro
-      - ./scripts:/app/scripts:ro
+      # Mount source code for hot-reload (read-write for development)
+      - ./src:/app/src
+      - ./scripts:/app/scripts
     command: ["python", "scripts/run_api_server.py", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
   frontend:
@@ -15,12 +17,21 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.dev
     ports:
-      - "3000:3000"
+      - "3001:3000"  # Changed to 3001 to avoid port conflict
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
       - /app/node_modules
     environment:
       VITE_API_BASE_URL: http://localhost:8000/api
       VITE_WS_URL: ws://localhost:8000/ws
+
+  scheduler:
+    volumes:
+      # Mount source code so scheduler picks up changes
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+    # Note: Scheduler will need to be restarted to pick up changes
+    # Use: docker-compose restart scheduler
 

@@ -114,6 +114,22 @@ class EconomicCollector(BaseDataCollector):
             # Rename index to 'date' for consistency
             df.index.name = "date"
 
+            # Filter out rows with NaN/null values (FRED API returns NaN for missing dates)
+            # The database requires value to be NOT NULL, so we must drop these rows
+            initial_count = len(df)
+            df = df.dropna(subset=[symbol])
+            dropped_count = initial_count - len(df)
+            
+            if dropped_count > 0:
+                self.logger.warning(
+                    f"Dropped {dropped_count} records with null/NaN values "
+                    f"(out of {initial_count} total records)"
+                )
+
+            if df.empty:
+                self.logger.warning(f"No valid data (after filtering nulls) for {symbol}")
+                return self._format_output(pd.DataFrame())
+
             # Reset index to make date a column
             df = df.reset_index()
 

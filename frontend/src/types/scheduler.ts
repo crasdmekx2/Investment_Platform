@@ -3,6 +3,8 @@ export type TriggerType = 'cron' | 'interval';
 export type AssetType = 'stock' | 'forex' | 'crypto' | 'bond' | 'commodity' | 'economic_indicator';
 export type ExecutionStatus = 'running' | 'success' | 'failed' | 'cancelled';
 export type CollectionStatus = 'success' | 'failed' | 'partial';
+export type DependencyCondition = 'success' | 'complete' | 'any';
+export type ErrorCategory = 'transient' | 'permanent' | 'system';
 
 export interface CronTriggerConfig {
   type: 'cron';
@@ -14,6 +16,7 @@ export interface CronTriggerConfig {
   hour?: string;
   minute?: string;
   second?: string;
+  execute_now?: boolean;
 }
 
 export interface IntervalTriggerConfig {
@@ -23,9 +26,15 @@ export interface IntervalTriggerConfig {
   hours?: number;
   minutes?: number;
   seconds?: number;
+  execute_now?: boolean;
 }
 
 export type TriggerConfig = CronTriggerConfig | IntervalTriggerConfig;
+
+export interface JobDependency {
+  depends_on_job_id: string;
+  condition?: DependencyCondition;
+}
 
 export interface ScheduledJob {
   job_id: string;
@@ -42,6 +51,10 @@ export interface ScheduledJob {
   updated_at: string;
   last_run_at?: string;
   next_run_at?: string;
+  dependencies?: JobDependency[];
+  max_retries?: number;
+  retry_delay_seconds?: number;
+  retry_backoff_multiplier?: number;
 }
 
 export interface JobCreate {
@@ -54,6 +67,10 @@ export interface JobCreate {
   collector_kwargs?: Record<string, unknown>;
   asset_metadata?: Record<string, unknown>;
   job_id?: string;
+  dependencies?: JobDependency[];
+  max_retries?: number;
+  retry_delay_seconds?: number;
+  retry_backoff_multiplier?: number;
 }
 
 export interface JobUpdate {
@@ -66,6 +83,10 @@ export interface JobUpdate {
   collector_kwargs?: Record<string, unknown>;
   asset_metadata?: Record<string, unknown>;
   status?: JobStatus;
+  dependencies?: JobDependency[];
+  max_retries?: number;
+  retry_delay_seconds?: number;
+  retry_backoff_multiplier?: number;
 }
 
 export interface JobExecution {
@@ -76,7 +97,9 @@ export interface JobExecution {
   started_at: string;
   completed_at?: string;
   error_message?: string;
+  error_category?: ErrorCategory;
   execution_time_ms?: number;
+  retry_attempt?: number;
   created_at: string;
 }
 
@@ -160,5 +183,61 @@ export interface DataCoverage {
   earliest_date?: string;
   latest_date?: string;
   record_count: number;
+}
+
+export interface JobTemplate {
+  template_id: number;
+  name: string;
+  description?: string;
+  symbol?: string;
+  asset_type: AssetType;
+  trigger_type: TriggerType;
+  trigger_config: TriggerConfig;
+  start_date?: string;
+  end_date?: string;
+  collector_kwargs?: Record<string, unknown>;
+  asset_metadata?: Record<string, unknown>;
+  max_retries?: number;
+  retry_delay_seconds?: number;
+  retry_backoff_multiplier?: number;
+  is_public: boolean;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobTemplateCreate {
+  name: string;
+  description?: string;
+  symbol?: string;
+  asset_type: AssetType;
+  trigger_type: TriggerType;
+  trigger_config: TriggerConfig;
+  start_date?: string;
+  end_date?: string;
+  collector_kwargs?: Record<string, unknown>;
+  asset_metadata?: Record<string, unknown>;
+  max_retries?: number;
+  retry_delay_seconds?: number;
+  retry_backoff_multiplier?: number;
+  is_public?: boolean;
+  created_by?: string;
+}
+
+export interface JobTemplateUpdate {
+  name?: string;
+  description?: string;
+  symbol?: string;
+  asset_type?: AssetType;
+  trigger_type?: TriggerType;
+  trigger_config?: TriggerConfig;
+  start_date?: string;
+  end_date?: string;
+  collector_kwargs?: Record<string, unknown>;
+  asset_metadata?: Record<string, unknown>;
+  max_retries?: number;
+  retry_delay_seconds?: number;
+  retry_backoff_multiplier?: number;
+  is_public?: boolean;
 }
 

@@ -375,3 +375,4 @@ class TestSchedulerService:
         assert job.collector_kwargs is not None
         assert job.collector_kwargs["granularity"] == "1h"
 
+

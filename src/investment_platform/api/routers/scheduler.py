@@ -1,12 +1,16 @@
 """Scheduler API router."""
 
-from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Query, Request
+from typing import List, Optional, Dict, Any
+from datetime import datetime
+from fastapi import APIRouter, HTTPException, Query, Request, BackgroundTasks
 from investment_platform.api.models.scheduler import (
     JobCreate,
     JobUpdate,
     JobResponse,
     JobExecutionResponse,
+    JobTemplateCreate,
+    JobTemplateUpdate,
+    JobTemplateResponse,
 )
 from investment_platform.api.services import scheduler_service as scheduler_svc
 
@@ -59,10 +63,21 @@ async def create_job(job_data: JobCreate, request: Request):
     try:
         job = scheduler_svc.create_job(job_data)
         
-        # Add job to scheduler if it's active or pending
+        # Check if this is an immediate execution job (execute_now flag in trigger_config)
+        trigger_config = job_data.trigger_config
+        is_immediate_only = trigger_config.get("execute_now", False) if isinstance(trigger_config, dict) else False
+        
+        # Add job to scheduler so it can be triggered
+        # For execute_now jobs, we do NOT add them to scheduler - they should only be triggered manually
+        # The add_job_from_database method will check for execute_now and skip scheduling
         scheduler = get_scheduler(request)
-        if job.status in ("active", "pending"):
+        if job.status in ("active", "pending") and not is_immediate_only:
             scheduler.add_job_from_database(job.job_id)
+        elif is_immediate_only:
+            # For execute_now jobs, just update status to active but don't schedule
+            # The job can still be triggered manually via the trigger endpoint
+            if job.status == "pending":
+                scheduler.sync_job_status(job.job_id, "active", None)
         
         return job
     except HTTPException:
@@ -144,26 +159,41 @@ async def resume_job(job_id: str, request: Request):
 
 
 @router.post("/jobs/{job_id}/trigger", response_model=dict)
-async def trigger_job(job_id: str, request: Request):
+async def trigger_job(job_id: str, request: Request, background_tasks: BackgroundTasks):
     """Manually trigger a scheduled job."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     job = scheduler_svc.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
     
-    # Trigger job execution
-    scheduler = get_scheduler(request)
-    triggered = scheduler.trigger_job_now(job_id)
-    
-    if not triggered:
+    # Check if job is in a valid state to trigger
+    if job.status not in ("active", "pending"):
         raise HTTPException(
             status_code=400,
-            detail=f"Failed to trigger job {job_id}. Job may not be in scheduler."
+            detail=f"Job {job_id} has status {job.status}, cannot trigger. Job must be active or pending."
         )
     
+    # Trigger job execution in background to avoid blocking the API
+    scheduler = get_scheduler(request)
+    
+    def execute_job():
+        """Execute the job in background."""
+        try:
+            scheduler.trigger_job_now(job_id)
+        except Exception as e:
+            logger.error(f"Background job execution failed for {job_id}: {e}", exc_info=True)
+    
+    # Add job execution to background tasks
+    background_tasks.add_task(execute_job)
+    
+    # Return immediately - job will execute in background
     return {
-        "message": f"Job {job_id} triggered successfully",
+        "message": f"Job {job_id} triggered successfully. Execution started in background.",
         "job_id": job_id,
         "status": "triggered",
+        "job_status": job.status,
     }
 
 
@@ -180,4 +210,86 @@ async def get_job_executions(
     
     executions = scheduler_svc.get_job_executions(job_id, limit=limit, offset=offset)
     return executions
+
+
+# ============================================================================
+# JOB TEMPLATE ENDPOINTS
+# ============================================================================
+
+@router.get("/templates", response_model=List[JobTemplateResponse])
+async def list_templates(
+    asset_type: Optional[str] = Query(None, description="Filter by asset type"),
+    is_public: Optional[bool] = Query(None, description="Filter by public/private templates"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of results"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
+):
+    """List all job templates with optional filters."""
+    try:
+        templates = scheduler_svc.list_templates(
+            asset_type=asset_type,
+            is_public=is_public,
+            limit=limit,
+            offset=offset,
+        )
+        return templates
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/templates/{template_id}", response_model=JobTemplateResponse)
+async def get_template(template_id: int):
+    """Get a job template by ID."""
+    template = scheduler_svc.get_template(template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail=f"Template {template_id} not found")
+    return template
+
+
+@router.post("/templates", response_model=JobTemplateResponse, status_code=201)
+async def create_template(template_data: JobTemplateCreate):
+    """Create a new job template."""
+    try:
+        template = scheduler_svc.create_template(template_data)
+        return template
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.put("/templates/{template_id}", response_model=JobTemplateResponse)
+async def update_template(template_id: int, template_data: JobTemplateUpdate):
+    """Update a job template."""
+    template = scheduler_svc.update_template(template_id, template_data)
+    if not template:
+        raise HTTPException(status_code=404, detail=f"Template {template_id} not found")
+    return template
+
+
+@router.delete("/templates/{template_id}", status_code=204)
+async def delete_template(template_id: int):
+    """Delete a job template."""
+    deleted = scheduler_svc.delete_template(template_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Template {template_id} not found")
+
+
+# ============================================================================
+# ANALYTICS ENDPOINTS
+# ============================================================================
+
+@router.get("/analytics")
+async def get_analytics(
+    start_date: Optional[datetime] = Query(None, description="Start date for analytics period"),
+    end_date: Optional[datetime] = Query(None, description="End date for analytics period"),
+    asset_type: Optional[str] = Query(None, description="Filter by asset type"),
+):
+    """Get scheduler analytics and metrics."""
+    try:
+        analytics = scheduler_svc.get_scheduler_analytics(
+            start_date=start_date,
+            end_date=end_date,
+            asset_type=asset_type,
+        )
+        return analytics
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 

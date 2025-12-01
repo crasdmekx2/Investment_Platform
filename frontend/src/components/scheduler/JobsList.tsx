@@ -3,6 +3,7 @@ import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
+import { ScheduleVisualization } from '@/components/scheduler/ScheduleVisualization';
 import { useSchedulerStore } from '@/store/slices/schedulerSlice';
 import { formatTrigger, getStatusColor } from '@/lib/utils/scheduler';
 import type { JobStatus, AssetType } from '@/types/scheduler';
@@ -11,6 +12,7 @@ export function JobsList() {
   const { jobs, isLoading, error, setFilters, fetchJobs, pauseJob, resumeJob, deleteJob } = useSchedulerStore();
   const [selectedStatus, setSelectedStatus] = useState<JobStatus | ''>('');
   const [selectedAssetType, setSelectedAssetType] = useState<AssetType | ''>('');
+  const [showVisualization, setShowVisualization] = useState(false);
 
   const handleFilterChange = () => {
     setFilters({
@@ -49,6 +51,22 @@ export function JobsList() {
 
   return (
     <div className="space-y-6">
+      {/* Visualization Toggle */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-900">Scheduled Jobs</h2>
+        <Button
+          variant="secondary"
+          onClick={() => setShowVisualization(!showVisualization)}
+          className="min-h-[44px]"
+        >
+          {showVisualization ? 'Hide' : 'Show'} Schedule Visualization
+        </Button>
+      </div>
+
+      {showVisualization && (
+        <ScheduleVisualization jobs={jobs} viewMode="timeline" daysAhead={7} />
+      )}
+
       {/* Filters */}
       <Card title="Filters">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

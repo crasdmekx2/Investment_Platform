@@ -1,0 +1,27 @@
+{
+  "test_run": {
+    "start_time": "2025-12-01T15:23:40.065386",
+    "end_time": "2025-12-01T15:26:41.708071",
+    "total_tests": 1,
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0
+  },
+  "results": [
+    {
+      "test_id": "TEST-003",
+      "test_name": "Forex - Full History",
+      "status": "FAIL",
+      "start_time": "2025-12-01T15:23:40.065386",
+      "end_time": "2025-12-01T15:26:41.707568",
+      "duration_seconds": 181.642182,
+      "error_message": "Execution did not complete within timeout",
+      "verification_results": {},
+      "job_id": "forex_USD_EUR_1764620619_2cd7970e",
+      "execution_id": null,
+      "log_id": null,
+      "records_collected": 0,
+      "data_verification": {}
+    }
+  ]
+}

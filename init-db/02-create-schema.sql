@@ -122,6 +122,8 @@ CREATE TABLE IF NOT EXISTS forex_rates (
     time TIMESTAMPTZ NOT NULL,
     asset_id INTEGER NOT NULL REFERENCES assets(asset_id) ON DELETE CASCADE,
     rate NUMERIC(20, 8) NOT NULL CHECK (rate > 0),
+    base_currency VARCHAR(10),  -- Base currency code (e.g., 'USD', 'EUR', 'BTC')
+    quote_currency VARCHAR(10),  -- Quote currency code (e.g., 'USD', 'EUR')
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
     -- Constraints
@@ -135,6 +137,8 @@ COMMENT ON TABLE forex_rates IS 'Foreign exchange rate time-series data for curr
 COMMENT ON COLUMN forex_rates.time IS 'Timestamp of the exchange rate (partition key for TimescaleDB)';
 COMMENT ON COLUMN forex_rates.asset_id IS 'Foreign key to assets table';
 COMMENT ON COLUMN forex_rates.rate IS 'Exchange rate (base_currency / quote_currency)';
+COMMENT ON COLUMN forex_rates.base_currency IS 'Base currency code (e.g., USD, EUR, BTC)';
+COMMENT ON COLUMN forex_rates.quote_currency IS 'Quote currency code (e.g., USD, EUR)';
 COMMENT ON COLUMN forex_rates.created_at IS 'Timestamp when record was inserted';
 
 -- Create indexes for forex_rates table

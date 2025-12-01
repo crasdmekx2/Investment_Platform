@@ -139,6 +139,22 @@ class BondCollector(BaseDataCollector):
             df = pd.DataFrame({"rate": series})
             df.index.name = "date"
 
+            # Filter out rows with NaN/null rate values (FRED API returns NaN for missing dates)
+            # The database requires rate to be NOT NULL, so we must drop these rows
+            initial_count = len(df)
+            df = df.dropna(subset=["rate"])
+            dropped_count = initial_count - len(df)
+            
+            if dropped_count > 0:
+                self.logger.warning(
+                    f"Dropped {dropped_count} records with null/NaN rate values "
+                    f"(out of {initial_count} total records)"
+                )
+
+            if df.empty:
+                self.logger.warning(f"No valid data (after filtering nulls) for {symbol}")
+                return self._format_output(pd.DataFrame())
+
             # Validate data
             self._validate_data(df, required_columns=["rate"])
 

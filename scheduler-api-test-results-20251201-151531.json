@@ -1,0 +1,33 @@
+{
+  "test_run": {
+    "start_time": "2025-12-01T15:15:30.882597",
+    "end_time": "2025-12-01T15:15:31.926698",
+    "total_tests": 1,
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0
+  },
+  "results": [
+    {
+      "test_id": "TEST-001",
+      "test_name": "Stock - Full History with Date Range",
+      "status": "FAIL",
+      "start_time": "2025-12-01T15:15:30.882597",
+      "end_time": "2025-12-01T15:15:31.925699",
+      "duration_seconds": 1.043102,
+      "error_message": "No log_id linked to execution",
+      "verification_results": {
+        "job_created": true,
+        "execution": {
+          "status": "WARN",
+          "error": "No log_id linked to execution"
+        }
+      },
+      "job_id": "stock_AAPL_1764620130_c5529284",
+      "execution_id": 53,
+      "log_id": null,
+      "records_collected": 0,
+      "data_verification": {}
+    }
+  ]
+}

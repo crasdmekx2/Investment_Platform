@@ -320,3 +320,4 @@ class TestSchedulerAPIIntegration:
         get_response = client.get(f"/api/scheduler/jobs/{job_id}")
         assert get_response.status_code == 404
 
+

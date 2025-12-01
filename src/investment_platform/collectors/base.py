@@ -14,6 +14,8 @@ from tenacity import (
     wait_exponential,
 )
 
+from investment_platform.collectors.rate_limiter import SharedRateLimiter
+
 
 class DataCollectionError(Exception):
     """Base exception for data collection errors."""
@@ -167,11 +169,11 @@ class BaseDataCollector(ABC):
 
     def _rate_limit(self, func):
         """
-        Decorator for rate limiting function calls.
+        Decorator for rate limiting function calls using shared rate limiter.
 
-        Note: The ratelimit library requires constant values at decoration time,
-        so this uses the instance's rate_limit_calls and rate_limit_period.
-        For custom rate limits, subclasses should implement their own decorators.
+        Uses a shared rate limiter per collector class to ensure all instances
+        of the same collector type share the same rate limit, preventing issues
+        when multiple jobs use the same collector simultaneously.
 
         Args:
             func: Function to wrap with rate limiting
@@ -179,15 +181,16 @@ class BaseDataCollector(ABC):
         Returns:
             Wrapped function with rate limiting
         """
-        calls = self.rate_limit_calls
-        period = self.rate_limit_period
-
-        @sleep_and_retry
-        @limits(calls=calls, period=period)
-        def wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        return wrapper
+        # Get shared rate limiter for this collector class
+        collector_class_name = self.__class__.__name__
+        limiter = SharedRateLimiter.get_limiter(
+            collector_class_name,
+            calls=self.rate_limit_calls,
+            period=self.rate_limit_period
+        )
+        
+        # Apply the shared rate limiter decorator
+        return limiter(func)
 
     def _convert_to_dataframe(
         self, data: Union[pd.DataFrame, Dict[str, Any], List[Dict[str, Any]]]
@@ -370,4 +373,133 @@ class BaseDataCollector(ABC):
             raise APIError(error_msg) from error
         else:
             raise APIError(error_msg) from error
+
+    def _init_yfinance(self) -> Any:
+        """
+        Initialize yfinance library.
+
+        Returns:
+            yfinance module
+
+        Raises:
+            DataCollectionError: If yfinance is not installed
+        """
+        try:
+            import yfinance as yf
+            return yf
+        except ImportError:
+            raise DataCollectionError(
+                "yfinance library is not installed. "
+                "Install it with: pip install yfinance"
+            )
+
+    def _fetch_yfinance_history(
+        self,
+        symbol: str,
+        start_dt: datetime,
+        end_dt: datetime,
+        interval: str = "1d",
+        auto_adjust: bool = True,
+        prepost: bool = False,
+        actions: bool = True,
+        yf: Optional[Any] = None,
+    ) -> pd.DataFrame:
+        """
+        Fetch historical data from yfinance.
+
+        Args:
+            symbol: yfinance ticker symbol
+            start_dt: Start date
+            end_dt: End date
+            interval: Data interval (default: '1d')
+            auto_adjust: Auto-adjust prices (default: True)
+            prepost: Include pre/post market data (default: False)
+            actions: Include dividends and splits (default: True)
+            yf: Optional yfinance module (if not provided, will initialize)
+
+        Returns:
+            DataFrame with historical data
+
+        Raises:
+            APIError: If data fetch fails
+        """
+        if yf is None:
+            yf = self._init_yfinance()
+
+        try:
+            ticker = yf.Ticker(symbol)
+            df = ticker.history(
+                start=start_dt,
+                end=end_dt,
+                interval=interval,
+                auto_adjust=auto_adjust,
+                prepost=prepost,
+                actions=actions,
+            )
+
+            if df.empty:
+                self.logger.warning(f"No data returned from yfinance for {symbol}")
+                return pd.DataFrame()
+
+            return df
+
+        except Exception as e:
+            raise APIError(f"Failed to fetch yfinance data for {symbol}: {e}") from e
+
+    def _standardize_yfinance_data(
+        self,
+        df: pd.DataFrame,
+        required_columns: Optional[List[str]] = None,
+        include_optional_columns: bool = True,
+    ) -> pd.DataFrame:
+        """
+        Standardize yfinance DataFrame format.
+
+        This method:
+        - Ensures index is DatetimeIndex
+        - Converts column names to lowercase
+        - Filters to standard OHLCV columns
+        - Optionally includes dividends and stock splits
+
+        Args:
+            df: Raw DataFrame from yfinance
+            required_columns: Optional list of required columns (default: ['open', 'high', 'low', 'close'])
+            include_optional_columns: Whether to include dividends and stock splits (default: True)
+
+        Returns:
+            Standardized DataFrame
+        """
+        if df.empty:
+            return df
+
+        # Ensure index is datetime
+        if not isinstance(df.index, pd.DatetimeIndex):
+            df.index = pd.to_datetime(df.index)
+
+        # Standardize column names to lowercase
+        df.columns = [col.lower() for col in df.columns]
+
+        # Define standard columns
+        standard_columns = ["open", "high", "low", "close", "volume"]
+        available_columns = [col for col in standard_columns if col in df.columns]
+
+        # Add optional columns if requested
+        if include_optional_columns:
+            optional_columns = ["dividends", "stock splits"]
+            for col in optional_columns:
+                if col in df.columns:
+                    available_columns.append(col)
+
+        # Filter to available columns
+        df = df[available_columns]
+
+        # Validate required columns if specified
+        if required_columns:
+            missing = set(required_columns) - set(df.columns)
+            if missing:
+                self.logger.warning(
+                    f"Missing required columns: {missing}. Available: {list(df.columns)}"
+                )
+
+        return df
 

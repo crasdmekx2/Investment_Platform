@@ -259,3 +259,4 @@ class TestSchedulerDocker:
         for var in required_vars:
             assert var in env_vars, f"Required environment variable {var} not found"
 
+

@@ -69,7 +69,11 @@ class SchemaMapper:
         
         # Optional columns
         if "volume" in data.columns:
-            result["volume"] = data["volume"].fillna(0).astype("int64")
+            # Convert volume to numeric first (handles string decimals like '954.43296228')
+            # Then convert to int64 for BIGINT database column
+            # Use pd.to_numeric to handle string values, then convert to int
+            volume_series = pd.to_numeric(data["volume"], errors='coerce').fillna(0)
+            result["volume"] = volume_series.astype("int64")
         else:
             result["volume"] = None
         
@@ -128,11 +132,18 @@ class SchemaMapper:
                 "Expected one of: 'rate', 'close', 'value'"
             )
         
+        # Build result DataFrame with rate and optional currency columns
         result = pd.DataFrame({
             "time": data.index,
             "asset_id": asset_id,
             "rate": data[rate_col].values,
         })
+        
+        # Add base_currency and quote_currency if present in source data
+        if "base_currency" in data.columns:
+            result["base_currency"] = data["base_currency"].values
+        if "quote_currency" in data.columns:
+            result["quote_currency"] = data["quote_currency"].values
         
         # Reset index
         result = result.reset_index(drop=True)
@@ -196,7 +207,7 @@ class SchemaMapper:
         Map collector data to economic_data table format.
         
         Args:
-            data: DataFrame from collector (should have value column)
+            data: DataFrame from collector (should have value column or symbol as column name)
             asset_id: Asset ID
             
         Returns:
@@ -205,6 +216,11 @@ class SchemaMapper:
         if data.empty:
             return pd.DataFrame()
         
+        # Handle case where date is a column (economic collector resets index)
+        if "date" in data.columns:
+            # Set date column as index
+            data = data.set_index("date")
+        
         # Ensure index is datetime
         if not isinstance(data.index, pd.DatetimeIndex):
             data.index = pd.to_datetime(data.index)
@@ -212,20 +228,42 @@ class SchemaMapper:
         # Normalize column names
         data.columns = [col.lower().strip() for col in data.columns]
         
-        # Find value column
+        # Find value column - economic collector uses symbol name as column
+        # Try standard names first, then any numeric column
         value_col = None
         for col in ["value", "rate", "close"]:
             if col in data.columns:
                 value_col = col
                 break
         
-        if value_col is None and len(data.columns) == 1:
-            value_col = data.columns[0]
+        # If not found, look for any numeric column (economic collector uses symbol as column name)
+        if value_col is None:
+            numeric_cols = data.select_dtypes(include=['number']).columns.tolist()
+            if len(numeric_cols) == 1:
+                value_col = numeric_cols[0]
+            elif len(data.columns) == 1:
+                value_col = data.columns[0]
+            elif len(numeric_cols) > 1:
+                # Multiple numeric columns - use the first one (should be the symbol)
+                value_col = numeric_cols[0]
+                self.logger.warning(
+                    f"Multiple numeric columns found in economic data: {numeric_cols}. "
+                    f"Using first column '{value_col}' as value column."
+                )
         
         if value_col is None:
+            # Log detailed information for debugging
+            self.logger.error(
+                f"Could not find value column in economic data. "
+                f"Data shape: {data.shape}, "
+                f"Columns: {list(data.columns)}, "
+                f"Column types: {data.dtypes.to_dict()}, "
+                f"Sample data:\n{data.head() if not data.empty else 'Empty DataFrame'}"
+            )
             raise ValueError(
-                "Could not find value column in economic data. "
-                "Expected one of: 'value', 'rate', 'close'"
+                f"Could not find value column in economic data. "
+                f"Available columns: {list(data.columns)}. "
+                f"Expected one of: 'value', 'rate', 'close', or a numeric column with the symbol name."
             )
         
         result = pd.DataFrame({

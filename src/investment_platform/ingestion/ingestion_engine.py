@@ -21,6 +21,8 @@ from investment_platform.ingestion.schema_mapper import SchemaMapper
 from investment_platform.ingestion.incremental_tracker import IncrementalTracker
 from investment_platform.ingestion.data_loader import DataLoader
 from investment_platform.ingestion.db_connection import get_db_connection
+from investment_platform.ingestion.request_coordinator import get_coordinator
+from investment_platform.ingestion.error_classifier import classify_error
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +99,7 @@ class IngestionEngine:
             "status": "failed",
             "error_message": None,
             "execution_time_ms": 0,
+            "log_id": None,
         }
         
         try:
@@ -156,6 +159,7 @@ class IngestionEngine:
             
             # Initialize collector
             collector = self._get_collector(asset_type)
+            coordinator = get_coordinator()
             
             # Collect and load data for each range
             total_collected = 0
@@ -166,14 +170,31 @@ class IngestionEngine:
                     f"Collecting data for {symbol} from {range_start} to {range_end}"
                 )
                 
-                # Collect data
+                # Collect data - use coordinator if enabled, otherwise direct collection
                 collect_kwargs = collector_kwargs or {}
-                data = collector.collect_historical_data(
-                    symbol=symbol,
-                    start_date=range_start,
-                    end_date=range_end,
-                    **collect_kwargs,
-                )
+                
+                if coordinator.enabled:
+                    # Use request coordinator for intelligent batching
+                    collector_type = collector.__class__.__name__
+                    data = coordinator.submit_request(
+                        collector_type=collector_type,
+                        symbol=symbol,
+                        asset_type=asset_type,
+                        start_date=range_start,
+                        end_date=range_end,
+                        collector_kwargs=collect_kwargs,
+                        callback=lambda x: x,  # Dummy callback, not used when waiting
+                        wait_for_result=True,
+                        timeout=300.0,  # 5 minute timeout
+                    )
+                else:
+                    # Direct collection (backward compatibility)
+                    data = collector.collect_historical_data(
+                        symbol=symbol,
+                        start_date=range_start,
+                        end_date=range_end,
+                        **collect_kwargs,
+                    )
                 
                 # Convert to DataFrame if needed
                 if not isinstance(data, pd.DataFrame):
@@ -197,16 +218,40 @@ class IngestionEngine:
                     data, asset_type, asset_id
                 )
                 
+                if mapped_data.empty:
+                    self.logger.warning(
+                        f"Schema mapping resulted in empty DataFrame for {symbol} "
+                        f"in range {range_start} to {range_end}"
+                    )
+                    continue
+                
+                # Log data quality metrics before loading
+                self.logger.debug(
+                    f"Pre-load validation for {symbol}: "
+                    f"{len(mapped_data)} records, "
+                    f"columns: {list(mapped_data.columns)}, "
+                    f"null counts: {mapped_data.isnull().sum().to_dict()}"
+                )
+                
                 # Load into database
                 records_loaded = self.data_loader.load_data(
                     mapped_data, asset_type, on_conflict=self.on_conflict
                 )
                 total_loaded += records_loaded
                 
-                self.logger.info(
-                    f"Loaded {records_loaded} records for {symbol} "
-                    f"in range {range_start} to {range_end}"
-                )
+                # Log if not all records were loaded
+                if records_loaded < len(mapped_data):
+                    dropped = len(mapped_data) - records_loaded
+                    self.logger.warning(
+                        f"Partial load for {symbol} in range {range_start} to {range_end}: "
+                        f"collected {len(mapped_data)} records, loaded {records_loaded}, "
+                        f"dropped {dropped}. Check logs for validation errors or constraint violations."
+                    )
+                else:
+                    self.logger.info(
+                        f"Loaded {records_loaded} records for {symbol} "
+                        f"in range {range_start} to {range_end}"
+                    )
             
             # Log collection run
             execution_time_ms = int((time.time() - start_time) * 1000)
@@ -215,13 +260,35 @@ class IngestionEngine:
             result["records_loaded"] = total_loaded
             
             if total_loaded > 0:
-                result["status"] = "success" if total_loaded == total_collected else "partial"
+                if total_loaded == total_collected:
+                    result["status"] = "success"
+                else:
+                    # Partial load is a failure - some records were dropped
+                    result["status"] = "failed"
+                    dropped = total_collected - total_loaded
+                    result["error_message"] = (
+                        f"Partial failure: Collected {total_collected} records but only loaded {total_loaded}. "
+                        f"{dropped} records were dropped. This indicates data validation errors, constraint violations, "
+                        f"or duplicate records. Check logs for detailed error messages."
+                    )
+                    self.logger.error(
+                        f"Partial load failure for {symbol}: {dropped} of {total_collected} records dropped. "
+                        f"Review data validation, constraint checks, and duplicate detection."
+                    )
             else:
                 result["status"] = "failed"
-                result["error_message"] = "No records were loaded"
+                # Provide detailed error message
+                if total_collected == 0:
+                    result["error_message"] = f"No data collected for {symbol}. The collector returned empty results for the date range {start_date} to {end_date}. This may indicate: 1) The symbol is invalid or not available, 2) No data exists for this date range, 3) API/service returned no data."
+                else:
+                    result["error_message"] = f"Collected {total_collected} records but failed to load any into database. Data may have been invalid or database insertion failed. Check logs for validation errors or constraint violations."
+            
+            # Ensure error_message is set if status is failed
+            if result["status"] == "failed" and (not result["error_message"] or result["error_message"].strip() == ""):
+                result["error_message"] = "Collection failed for unknown reason"
             
             # Log to data_collection_log table
-            self._log_collection_run(
+            log_id = self._log_collection_run(
                 asset_id=asset_id,
                 collector_type=collector.__class__.__name__,
                 start_date=start_date,
@@ -231,6 +298,7 @@ class IngestionEngine:
                 error_message=result["error_message"],
                 execution_time_ms=execution_time_ms,
             )
+            result["log_id"] = log_id
             
             self.logger.info(
                 f"Completed ingestion for {symbol}: "
@@ -239,39 +307,70 @@ class IngestionEngine:
             
         except Exception as e:
             execution_time_ms = int((time.time() - start_time) * 1000)
+            error_message = str(e)
+            error_category, _ = classify_error(e, error_message)
+            
             result["execution_time_ms"] = execution_time_ms
-            result["error_message"] = str(e)
+            result["error_message"] = error_message
+            result["error_category"] = error_category
             result["status"] = "failed"
             
             self.logger.error(
                 f"Failed to ingest data for {symbol}: {e}", exc_info=True
             )
             
+            # Ensure dates are datetime objects
+            log_start_date = start_date
+            log_end_date = end_date
+            
+            if isinstance(start_date, str):
+                log_start_date = datetime.fromisoformat(start_date.replace("Z", "+00:00"))
+            if isinstance(end_date, str):
+                log_end_date = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
+            
+            # Get collector class name, handling unknown asset types
+            collector_class = self.COLLECTOR_MAP.get(asset_type)
+            collector_type_name = collector_class.__name__ if collector_class else "Unknown"
+            
+            # Try to get or create asset_id for logging, even if ingestion failed
+            log_asset_id = result["asset_id"]
+            if log_asset_id is None:
+                try:
+                    # Try to get existing asset_id, or create a minimal one for logging
+                    asset_info = self._get_asset_info(symbol, asset_type, None)
+                    name = asset_info.pop("name", symbol)
+                    source = asset_info.pop("source", "Unknown")
+                    asset_info.pop("symbol", None)
+                    asset_info.pop("type", None)
+                    
+                    log_asset_id = self.asset_manager.get_or_create_asset(
+                        symbol=symbol,
+                        asset_type=asset_type,
+                        name=name,
+                        source=source,
+                        **asset_info,
+                    )
+                    result["asset_id"] = log_asset_id
+                except Exception as asset_error:
+                    self.logger.error(
+                        f"Failed to get/create asset for logging: {asset_error}", exc_info=True
+                    )
+                    # If we can't get asset_id, we can't log to data_collection_log
+                    # The error is already logged above, so we'll just return
+                    return result
+            
             # Log failed run
-            if result["asset_id"]:
-                # Ensure dates are datetime objects
-                log_start_date = start_date
-                log_end_date = end_date
-                
-                if isinstance(start_date, str):
-                    log_start_date = datetime.fromisoformat(start_date.replace("Z", "+00:00"))
-                if isinstance(end_date, str):
-                    log_end_date = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
-                
-                # Get collector class name, handling unknown asset types
-                collector_class = self.COLLECTOR_MAP.get(asset_type)
-                collector_type_name = collector_class.__name__ if collector_class else "Unknown"
-                
-                self._log_collection_run(
-                    asset_id=result["asset_id"],
-                    collector_type=collector_type_name,
-                    start_date=log_start_date,
-                    end_date=log_end_date,
-                    records_collected=result["records_collected"],
-                    status="failed",
-                    error_message=result["error_message"],
-                    execution_time_ms=execution_time_ms,
-                )
+            log_id = self._log_collection_run(
+                asset_id=log_asset_id,
+                collector_type=collector_type_name,
+                start_date=log_start_date,
+                end_date=log_end_date,
+                records_collected=result["records_collected"],
+                status="failed",
+                error_message=result["error_message"],
+                execution_time_ms=execution_time_ms,
+            )
+            result["log_id"] = log_id
         
         return result
 
@@ -339,7 +438,7 @@ class IngestionEngine:
         status: str,
         error_message: Optional[str],
         execution_time_ms: int,
-    ) -> None:
+    ) -> Optional[int]:
         """
         Log collection run to data_collection_log table.
         
@@ -352,6 +451,9 @@ class IngestionEngine:
             status: Status ('success', 'failed', 'partial')
             error_message: Error message if any
             execution_time_ms: Execution time in milliseconds
+            
+        Returns:
+            Log ID if successful, None if failed
         """
         try:
             with get_db_connection() as conn:
@@ -363,6 +465,7 @@ class IngestionEngine:
                             records_collected, status, error_message, execution_time_ms
                         )
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        RETURNING log_id
                         """,
                         (
                             asset_id,
@@ -375,7 +478,10 @@ class IngestionEngine:
                             execution_time_ms,
                         ),
                     )
+                    log_id = cursor.fetchone()[0]
                     conn.commit()
+                    return log_id
         except Exception as e:
-            self.logger.error(f"Failed to log collection run: {e}")
+            self.logger.error(f"Failed to log collection run: {e}", exc_info=True)
+            return None
 

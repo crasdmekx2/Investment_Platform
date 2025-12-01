@@ -7,8 +7,6 @@ psycopg2-binary>=2.9.0
 coinbase-advanced-py>=1.0.0
 yfinance>=0.2.0
 fredapi>=0.5.0
-forex-python>=1.6
-investpy>=1.0.0
 
 # Data processing
 pandas>=2.0.0

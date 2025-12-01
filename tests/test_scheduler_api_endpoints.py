@@ -354,3 +354,4 @@ class TestSchedulerAPIEndpoints:
         # Should either succeed (if empty is valid) or return error
         assert response.status_code in [201, 400, 422]
 
+

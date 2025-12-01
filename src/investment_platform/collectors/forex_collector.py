@@ -1,4 +1,4 @@
-"""Forex data collector using forex-python."""
+"""Forex data collector using yfinance."""
 
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
@@ -15,12 +15,9 @@ from investment_platform.collectors.base import (
 
 class ForexCollector(BaseDataCollector):
     """
-    Collector for foreign exchange (Forex) data using forex-python.
+    Collector for foreign exchange (Forex) data using yfinance.
 
-    Uses the forex-python library to fetch historical exchange rates.
-    Note: forex-python has limited historical data capabilities and primarily
-    provides current rates. For extensive historical data, consider using
-    alternative sources or APIs.
+    Uses yfinance as the data source for reliable forex data collection.
     """
 
     def __init__(self, output_format: str = "dataframe", **kwargs: Any):
@@ -33,18 +30,14 @@ class ForexCollector(BaseDataCollector):
         """
         super().__init__(output_format=output_format, **kwargs)
 
-        # Verify forex-python is available
+        # Initialize yfinance
         try:
-            from forex_python.converter import CurrencyRates
-            from forex_python.bitcoin import BtcConverter
-
-            self.currency_rates = CurrencyRates()
-            self.btc_converter = BtcConverter()
-        except ImportError:
+            self.yf = self._init_yfinance()
+            self.logger.info("Using yfinance as forex data source")
+        except DataCollectionError as e:
             raise DataCollectionError(
-                "forex-python library is not installed. "
-                "Install it with: pip install forex-python"
-            )
+                "yfinance is not available. Install it with: pip install yfinance"
+            ) from e
 
     def collect_historical_data(
         self,
@@ -70,11 +63,6 @@ class ForexCollector(BaseDataCollector):
             APIError: If data collection fails
             ValidationError: If parameters are invalid
 
-        Note:
-            forex-python has limited historical data support. This implementation
-            attempts to collect daily rates, but the library may not support
-            all date ranges. For comprehensive historical data, consider using
-            alternative data sources.
         """
         try:
             # Validate dates
@@ -99,74 +87,150 @@ class ForexCollector(BaseDataCollector):
             if base_currency == "BTC":
                 return self._collect_btc_data(quote_currency, start_dt, end_dt)
 
-            # Collect daily rates
-            rates = []
-            current_date = start_dt
-
-            # Limit date range to avoid excessive API calls
-            max_days = 365  # Limit to 1 year
-            days_diff = (end_dt - start_dt).days
-            if days_diff > max_days:
-                self.logger.warning(
-                    f"Date range exceeds {max_days} days. Limiting to {max_days} days."
-                )
-                end_dt = start_dt + timedelta(days=max_days)
-
-            while current_date <= end_dt:
-                try:
-                    # Get rate for specific date
-                    rate = self.currency_rates.get_rate(
-                        base_currency, quote_currency, current_date
-                    )
-
-                    rates.append(
-                        {
-                            "date": current_date,
-                            "base_currency": base_currency,
-                            "quote_currency": quote_currency,
-                            "rate": rate,
-                        }
-                    )
-
-                    # Move to next day
-                    current_date += timedelta(days=1)
-
-                except Exception as e:
-                    self.logger.warning(
-                        f"Failed to get rate for {current_date}: {e}. Skipping."
-                    )
-                    current_date += timedelta(days=1)
-                    continue
-
-            if not rates:
-                self.logger.warning(
-                    f"No rates collected for {base_currency}/{quote_currency}"
-                )
-                return self._format_output(pd.DataFrame())
-
-            # Convert to DataFrame
-            df = pd.DataFrame(rates)
-            df["date"] = pd.to_datetime(df["date"])
-            df = df.set_index("date")
-
-            # Validate data
-            self._validate_data(df, required_columns=["rate"])
-
-            self.logger.info(
-                f"Successfully collected {len(df)} records for {base_currency}/{quote_currency}"
-            )
-
-            return self._format_output(df)
+            # Use yfinance for forex data
+            return self._collect_with_yfinance(base_currency, quote_currency, start_dt, end_dt)
 
         except Exception as e:
             self._handle_error(e, f"collect_historical_data for {symbol}")
             raise
 
+    def _collect_with_yfinance(
+        self, base_currency: str, quote_currency: str, start_dt: datetime, end_dt: datetime
+    ) -> Union[pd.DataFrame, Dict[str, Any], List[Dict[str, Any]]]:
+        """
+        Collect forex data using yfinance.
+
+        Args:
+            base_currency: Base currency (e.g., 'USD', 'EUR')
+            quote_currency: Quote currency (e.g., 'USD', 'EUR')
+            start_dt: Start date
+            end_dt: End date
+
+        Returns:
+            Historical forex rate data
+        """
+        # yfinance uses standard forex notation: BASEQUOTE=X (e.g., EURUSD=X for EUR/USD)
+        # Try both directions since yfinance may have data for one but not the other
+        # Standard pairs: EURUSD, GBPUSD, USDJPY, etc.
+        yf_symbols = [
+            f"{base_currency}{quote_currency}=X",  # Try original order first
+            f"{quote_currency}{base_currency}=X",   # Try reversed order as fallback
+        ]
+        
+        df = None
+        used_symbol = None
+        inverted = False
+        
+        days_diff = (end_dt - start_dt).days
+        
+        for yf_symbol in yf_symbols:
+            try:
+                self.logger.info(f"Trying yfinance symbol: {yf_symbol}")
+                
+                # Add buffer to ensure we get data (yfinance may return data for trading days near the requested dates)
+                # For small ranges, expand slightly; for larger ranges, use exact dates
+                if days_diff <= 1:
+                    # For very small ranges, expand by a few days to ensure we get data
+                    buffer_start = start_dt - timedelta(days=2)
+                    buffer_end = end_dt + timedelta(days=2)
+                else:
+                    # For larger ranges, just add 1 day buffer
+                    buffer_start = start_dt - timedelta(days=1)
+                    buffer_end = end_dt + timedelta(days=1)
+                
+                # Fetch historical data using shared method
+                df = self._fetch_yfinance_history(
+                    symbol=yf_symbol,
+                    start_dt=buffer_start,
+                    end_dt=buffer_end,
+                    interval='1d',
+                    auto_adjust=True,
+                    prepost=False,
+                    actions=False,
+                    yf=self.yf,
+                )
+                
+                if not df.empty:
+                    used_symbol = yf_symbol
+                    # Check if we need to invert the rate
+                    if yf_symbol == f"{quote_currency}{base_currency}=X":
+                        inverted = True
+                    break
+            except Exception as e:
+                self.logger.debug(f"Failed to get data for {yf_symbol}: {e}")
+                continue
+        
+        if df is None or df.empty:
+            self.logger.warning(f"No data returned from yfinance for {base_currency}/{quote_currency}")
+            return self._format_output(pd.DataFrame())
+        
+        # Extract Close price as the rate
+        rates = df['Close'].copy()
+        
+        # If we used the inverted symbol, invert the rate (1/rate)
+        if inverted:
+            rates = 1.0 / rates
+            self.logger.info(f"Inverted rate for {base_currency}/{quote_currency} (used {used_symbol})")
+        
+        # Create result DataFrame
+        df_result = pd.DataFrame({
+            'rate': rates,
+            'base_currency': base_currency,
+            'quote_currency': quote_currency,
+        })
+        
+        # Ensure index is datetime
+        if not isinstance(df_result.index, pd.DatetimeIndex):
+            df_result.index = pd.to_datetime(df_result.index)
+        
+        # Filter to requested date range (use date-only comparison for more lenient matching)
+        # yfinance returns data for trading days, which may not exactly match requested dates
+        # So we compare dates (not datetimes) to allow nearby trading days
+        start_date_only = start_dt.date() if hasattr(start_dt, 'date') else pd.to_datetime(start_dt).date()
+        end_date_only = end_dt.date() if hasattr(end_dt, 'date') else pd.to_datetime(end_dt).date()
+        
+        # Get date part of index for comparison
+        df_dates = pd.to_datetime(df_result.index).date
+        if hasattr(df_dates, 'values'):
+            df_dates = [d.date() if hasattr(d, 'date') else pd.to_datetime(d).date() for d in df_result.index]
+        else:
+            df_dates = [d.date() if hasattr(d, 'date') else pd.to_datetime(d).date() for d in df_result.index]
+        
+        # Filter: include data where the date is within or near the requested range
+        # For very small ranges (1 day), accept data within 2 days
+        # For larger ranges, accept data within 1 day
+        mask = []
+        for idx_date in df_result.index:
+            idx_date_only = idx_date.date() if hasattr(idx_date, 'date') else pd.to_datetime(idx_date).date()
+            if days_diff <= 1:
+                # For 1-day ranges, accept data within 2 days of the range
+                days_from_start = abs((idx_date_only - start_date_only).days)
+                days_from_end = abs((idx_date_only - end_date_only).days)
+                mask.append(days_from_start <= 2 or days_from_end <= 2 or (start_date_only <= idx_date_only <= end_date_only))
+            else:
+                # For larger ranges, use standard filtering with 1-day tolerance
+                mask.append(start_date_only - timedelta(days=1) <= idx_date_only <= end_date_only + timedelta(days=1))
+        
+        df_result = df_result[mask]
+        
+        if df_result.empty:
+            self.logger.warning(f"No data in date range for {base_currency}/{quote_currency}")
+            return self._format_output(pd.DataFrame())
+        
+        # Validate data
+        self._validate_data(df_result, required_columns=["rate"])
+        
+        self.logger.info(
+            f"Successfully collected {len(df_result)} records for {base_currency}/{quote_currency} using yfinance (symbol: {used_symbol})"
+        )
+        
+        return self._format_output(df_result)
+
     def _collect_btc_data(
         self, quote_currency: str, start_dt: datetime, end_dt: datetime
     ) -> Union[pd.DataFrame, Dict[str, Any], List[Dict[str, Any]]]:
         """
-        Collect Bitcoin exchange rate data.
+        Collect Bitcoin exchange rate data using yfinance.
 
         Args:
             quote_currency: Quote currency (e.g., 'USD', 'EUR')
@@ -176,47 +240,79 @@ class ForexCollector(BaseDataCollector):
         Returns:
             Historical Bitcoin rate data
         """
-        rates = []
-        current_date = start_dt
-
-        # Limit date range
-        max_days = 365
+        # yfinance uses BTC-USD, BTC-EUR format for Bitcoin
+        yf_symbol = f"BTC-{quote_currency}"
+        
+        self.logger.info(f"Collecting Bitcoin data for {yf_symbol} from {start_dt} to {end_dt}")
+        
+        # Add buffer to ensure we get data
         days_diff = (end_dt - start_dt).days
-        if days_diff > max_days:
-            end_dt = start_dt + timedelta(days=max_days)
-
-        while current_date <= end_dt:
-            try:
-                rate = self.btc_converter.get_previous_price(quote_currency, current_date)
-
-                rates.append(
-                    {
-                        "date": current_date,
-                        "base_currency": "BTC",
-                        "quote_currency": quote_currency,
-                        "rate": rate,
-                    }
-                )
-
-                current_date += timedelta(days=1)
-
-            except Exception as e:
-                self.logger.warning(
-                    f"Failed to get BTC rate for {current_date}: {e}. Skipping."
-                )
-                current_date += timedelta(days=1)
-                continue
-
-        if not rates:
+        if days_diff <= 1:
+            buffer_start = start_dt - timedelta(days=2)
+            buffer_end = end_dt + timedelta(days=2)
+        else:
+            buffer_start = start_dt - timedelta(days=1)
+            buffer_end = end_dt + timedelta(days=1)
+        
+        # Fetch historical data using shared method
+        df = self._fetch_yfinance_history(
+            symbol=yf_symbol,
+            start_dt=buffer_start,
+            end_dt=buffer_end,
+            interval='1d',
+            auto_adjust=True,
+            prepost=False,
+            actions=False,
+            yf=self.yf,
+        )
+        
+        if df.empty:
+            self.logger.warning(f"No data returned from yfinance for {yf_symbol}")
             return self._format_output(pd.DataFrame())
-
-        df = pd.DataFrame(rates)
-        df["date"] = pd.to_datetime(df["date"])
-        df = df.set_index("date")
-
-        self._validate_data(df, required_columns=["rate"])
-
-        return self._format_output(df)
+        
+        # Extract Close price as the rate
+        rates = df['Close'].copy()
+        
+        # Create result DataFrame
+        df_result = pd.DataFrame({
+            'rate': rates,
+            'base_currency': 'BTC',
+            'quote_currency': quote_currency,
+        })
+        
+        # Ensure index is datetime
+        if not isinstance(df_result.index, pd.DatetimeIndex):
+            df_result.index = pd.to_datetime(df_result.index)
+        
+        # Filter to requested date range
+        start_date_only = start_dt.date() if hasattr(start_dt, 'date') else pd.to_datetime(start_dt).date()
+        end_date_only = end_dt.date() if hasattr(end_dt, 'date') else pd.to_datetime(end_dt).date()
+        
+        # Get date part of index for comparison
+        mask = []
+        for idx_date in df_result.index:
+            idx_date_only = idx_date.date() if hasattr(idx_date, 'date') else pd.to_datetime(idx_date).date()
+            if days_diff <= 1:
+                days_from_start = abs((idx_date_only - start_date_only).days)
+                days_from_end = abs((idx_date_only - end_date_only).days)
+                mask.append(days_from_start <= 2 or days_from_end <= 2 or (start_date_only <= idx_date_only <= end_date_only))
+            else:
+                mask.append(start_date_only - timedelta(days=1) <= idx_date_only <= end_date_only + timedelta(days=1))
+        
+        df_result = df_result[mask]
+        
+        if df_result.empty:
+            self.logger.warning(f"No data in date range for {yf_symbol}")
+            return self._format_output(pd.DataFrame())
+        
+        # Validate data
+        self._validate_data(df_result, required_columns=["rate"])
+        
+        self.logger.info(
+            f"Successfully collected {len(df_result)} records for {yf_symbol} using yfinance"
+        )
+        
+        return self._format_output(df_result)
 
     def get_asset_info(self, symbol: str) -> Dict[str, Any]:
         """
@@ -245,15 +341,43 @@ class ForexCollector(BaseDataCollector):
             self.logger.info(f"Fetching currency pair info for {base_currency}/{quote_currency}")
 
             # Get current rate to verify pair is valid
-            try:
-                if base_currency == "BTC":
-                    current_rate = self.btc_converter.get_latest_price(quote_currency)
-                else:
-                    current_rate = self.currency_rates.get_rate(
-                        base_currency, quote_currency
-                    )
-            except Exception as e:
-                raise APIError(f"Invalid currency pair {base_currency}/{quote_currency}: {e}")
+            current_rate = None
+            
+            # Handle Bitcoin separately
+            if base_currency == "BTC":
+                yf_symbol = f"BTC-{quote_currency}"
+                try:
+                    ticker = self.yf.Ticker(yf_symbol)
+                    hist = ticker.history(period="1d")
+                    if not hist.empty:
+                        current_rate = float(hist['Close'].iloc[-1])
+                except Exception as e:
+                    self.logger.debug(f"yfinance failed for BTC asset info: {e}")
+            else:
+                # Try both symbol directions for forex pairs
+                yf_symbols = [
+                    f"{base_currency}{quote_currency}=X",
+                    f"{quote_currency}{base_currency}=X",
+                ]
+                for yf_symbol in yf_symbols:
+                    try:
+                        ticker = self.yf.Ticker(yf_symbol)
+                        hist = ticker.history(period="1d")
+                        if not hist.empty:
+                            current_rate = float(hist['Close'].iloc[-1])
+                            # If we used inverted symbol, invert the rate
+                            if yf_symbol == f"{quote_currency}{base_currency}=X":
+                                current_rate = 1.0 / current_rate
+                            break
+                    except Exception as e:
+                        self.logger.debug(f"yfinance failed for {yf_symbol}: {e}")
+                        continue
+            
+            if current_rate is None:
+                raise APIError(
+                    f"Invalid currency pair {base_currency}/{quote_currency}: "
+                    f"Could not get rate from yfinance"
+                )
 
             asset_info = {
                 "symbol": symbol,

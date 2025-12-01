@@ -1,5 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/common/Card';
+import { Button } from '@/components/common/Button';
+import { JobAnalytics } from '@/components/scheduler/JobAnalytics';
 import { useSchedulerStore } from '@/store/slices/schedulerSlice';
 import { useCollectionStore } from '@/store/slices/collectionSlice';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -7,6 +9,7 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 export function JobsDashboard() {
   const { jobs, isLoading, fetchJobs } = useSchedulerStore();
   const { activeJobs, logs, fetchCollectionLogs } = useCollectionStore();
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   useEffect(() => {
     fetchJobs();
@@ -27,6 +30,19 @@ export function JobsDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Analytics Toggle */}
+      <div className="flex justify-end">
+        <Button
+          variant="secondary"
+          onClick={() => setShowAnalytics(!showAnalytics)}
+          className="min-h-[44px]"
+        >
+          {showAnalytics ? 'Hide' : 'Show'} Analytics
+        </Button>
+      </div>
+
+      {showAnalytics && <JobAnalytics />}
+
       {/* Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>

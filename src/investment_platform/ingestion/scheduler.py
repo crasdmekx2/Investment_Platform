@@ -1,11 +1,13 @@
 """Scheduler for automated data ingestion."""
 
 import logging
+import os
 import signal
 import sys
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 try:
     from apscheduler.schedulers.blocking import BlockingScheduler
@@ -13,11 +15,13 @@ try:
     from apscheduler.triggers.cron import CronTrigger
     from apscheduler.triggers.interval import IntervalTrigger
     from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
+    from apscheduler.executors.pool import ThreadPoolExecutor as APSchedulerThreadPoolExecutor
     APSCHEDULER_AVAILABLE = True
 except ImportError:
     APSCHEDULER_AVAILABLE = False
 
 from investment_platform.ingestion.ingestion_engine import IngestionEngine
+from investment_platform.ingestion.error_classifier import classify_error
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +50,26 @@ class IngestionScheduler:
         self.logger = logger
         self.ingestion_engine = IngestionEngine()
         
+        # Get max workers from environment variable (default: 10)
+        max_workers = int(os.getenv("SCHEDULER_MAX_WORKERS", "10"))
+        
         if blocking:
             self.scheduler = BlockingScheduler(timezone=timezone)
         else:
-            self.scheduler = BackgroundScheduler(timezone=timezone)
+            # Configure executor for parallel job execution
+            executors = {
+                'default': APSchedulerThreadPoolExecutor(max_workers=max_workers)
+            }
+            job_defaults = {
+                'coalesce': False,  # Don't combine multiple pending executions
+                'max_instances': 3,  # Allow up to 3 concurrent instances of same job
+            }
+            self.scheduler = BackgroundScheduler(
+                timezone=timezone,
+                executors=executors,
+                job_defaults=job_defaults
+            )
+            self.logger.info(f"Configured scheduler with {max_workers} worker threads for parallel execution")
         
         # Register event listeners
         self.scheduler.add_listener(
@@ -71,6 +91,9 @@ class IngestionScheduler:
         collector_kwargs: Optional[Dict[str, Any]] = None,
         asset_metadata: Optional[Dict[str, Any]] = None,
         job_id: Optional[str] = None,
+        max_retries: Optional[int] = None,
+        retry_delay_seconds: Optional[int] = None,
+        retry_backoff_multiplier: Optional[float] = None,
         **kwargs: Any,
     ) -> str:
         """
@@ -85,6 +108,9 @@ class IngestionScheduler:
             collector_kwargs: Additional kwargs for collector
             asset_metadata: Additional metadata for asset
             job_id: Optional job ID (default: auto-generated)
+            max_retries: Maximum number of retry attempts (default: 3)
+            retry_delay_seconds: Initial delay in seconds before first retry (default: 60)
+            retry_backoff_multiplier: Multiplier for exponential backoff (default: 2.0)
             **kwargs: Additional kwargs for scheduler.add_job
             
         Returns:
@@ -92,6 +118,11 @@ class IngestionScheduler:
         """
         if job_id is None:
             job_id = f"{asset_type}_{symbol}_{int(datetime.now().timestamp())}"
+        
+        # Store retry configuration
+        job_max_retries = max_retries if max_retries is not None else 3
+        job_retry_delay = retry_delay_seconds if retry_delay_seconds is not None else 60
+        job_backoff_multiplier = retry_backoff_multiplier if retry_backoff_multiplier is not None else 2.0
         
         # Store date configuration (None means use defaults calculated at runtime)
         # Dates are calculated fresh at execution time to support incremental collection
@@ -137,8 +168,27 @@ class IngestionScheduler:
                     f"Failed scheduled ingestion for {symbol}: {e}",
                     exc_info=True
                 )
-                # Re-raise to let APScheduler handle it
-                raise
+                
+                # Classify error
+                error_category, recovery_suggestion = classify_error(e, str(e))
+                
+                # ingest() should never raise, but if it does, create a result dict
+                # This ensures we always return a result that can be logged
+                result = {
+                    "asset_id": None,
+                    "records_collected": 0,
+                    "records_loaded": 0,
+                    "status": "failed",
+                    "error_message": str(e),
+                    "error_category": error_category,
+                    "recovery_suggestion": recovery_suggestion,
+                    "execution_time_ms": execution_time_ms,
+                    "log_id": None,
+                    "max_retries": job_max_retries,
+                    "retry_delay_seconds": job_retry_delay,
+                    "retry_backoff_multiplier": job_backoff_multiplier,
+                }
+                return result
         
         # Add job to scheduler
         self.scheduler.add_job(
@@ -350,7 +400,11 @@ class IngestionScheduler:
     def shutdown(self):
         """Shutdown the scheduler gracefully."""
         self.logger.info("Shutting down ingestion scheduler...")
-        self.scheduler.shutdown()
+        try:
+            if self.scheduler.running:
+                self.scheduler.shutdown()
+        except Exception as e:
+            self.logger.warning(f"Error during shutdown: {e}")
 
     def _job_listener(self, event):
         """Handle job execution events."""
@@ -359,11 +413,34 @@ class IngestionScheduler:
         job_id = event.job_id
         execution_status = "success"
         error_message = None
+        error_category = None
         execution_time_ms = None
+        log_id = None
+        retry_attempt = 0  # Default to 0 for first attempt
         
-        if event.exception:
+        # Get result from event if available
+        if hasattr(event, 'retval') and isinstance(event.retval, dict):
+            result = event.retval
+            # Get execution time and log_id from result (calculated in job function)
+            execution_time_ms = result.get('execution_time_ms')
+            log_id = result.get('log_id')
+            retry_attempt = result.get('retry_attempt', 0)
+            
+            # Determine status and error message from result
+            result_status = result.get('status', 'unknown')
+            if result_status == 'failed':
+                execution_status = "failed"
+                error_message = result.get('error_message') or "Ingestion failed"
+                error_category = result.get('error_category')
+            elif result_status == 'partial':
+                execution_status = "success"  # Partial success is still considered success
+            else:
+                execution_status = "success"
+        elif event.exception:
+            # Fallback: if there's an exception and no result, use exception info
             execution_status = "failed"
             error_message = str(event.exception)
+            error_category, _ = classify_error(event.exception, error_message)
             self.logger.error(
                 f"Job {job_id} failed with exception: {event.exception}",
                 exc_info=event.exception,
@@ -371,16 +448,7 @@ class IngestionScheduler:
         else:
             self.logger.debug(f"Job {job_id} executed successfully")
         
-        # Get execution time and log_id from result if available
-        execution_time_ms = None
-        log_id = None
-        
-        if hasattr(event, 'retval') and isinstance(event.retval, dict):
-            # Get execution time from result (calculated in job function)
-            execution_time_ms = event.retval.get('execution_time_ms')
-            log_id = event.retval.get('log_id')
-        
-        # Fallback: try to calculate from event times if available
+        # Fallback: try to calculate execution time from event times if not available
         if execution_time_ms is None and hasattr(event, 'scheduled_run_time') and hasattr(event, 'run_time'):
             try:
                 execution_time_ms = int((event.run_time - event.scheduled_run_time).total_seconds() * 1000)
@@ -395,7 +463,9 @@ class IngestionScheduler:
                     execution_status=execution_status,
                     log_id=log_id,
                     error_message=error_message,
+                    error_category=error_category,
                     execution_time_ms=execution_time_ms,
+                    retry_attempt=retry_attempt,
                 )
             except Exception as e:
                 self.logger.error(f"Failed to record execution for job {job_id}: {e}", exc_info=True)

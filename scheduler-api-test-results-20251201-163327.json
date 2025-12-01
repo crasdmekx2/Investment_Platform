@@ -1,0 +1,120 @@
+{
+  "test_run": {
+    "start_time": "2025-12-01T16:33:19.234514",
+    "end_time": "2025-12-01T16:33:27.975657",
+    "total_tests": 4,
+    "passed": 3,
+    "failed": 1,
+    "skipped": 0
+  },
+  "results": [
+    {
+      "test_id": "TEST-003",
+      "test_name": "Forex - Full History",
+      "status": "PASS",
+      "start_time": "2025-12-01T16:33:19.234514",
+      "end_time": "2025-12-01T16:33:21.437604",
+      "duration_seconds": 2.20309,
+      "error_message": null,
+      "verification_results": {
+        "execution": {
+          "status": "PASS",
+          "execution_id": 68,
+          "log_id": 66,
+          "records_collected": 1,
+          "log_status": "success"
+        }
+      },
+      "job_id": "forex_USD_EUR_1764624799_25c966c8",
+      "execution_id": 68,
+      "log_id": 66,
+      "records_collected": 1,
+      "data_verification": {
+        "status": "PASS",
+        "count": 1,
+        "expected_min": 1,
+        "asset_id": 8,
+        "table": "forex_rates"
+      }
+    },
+    {
+      "test_id": "TEST-004",
+      "test_name": "Bond - Full History",
+      "status": "PASS",
+      "start_time": "2025-12-01T16:33:21.437604",
+      "end_time": "2025-12-01T16:33:23.687492",
+      "duration_seconds": 2.249888,
+      "error_message": null,
+      "verification_results": {
+        "execution": {
+          "status": "PASS",
+          "execution_id": 69,
+          "log_id": 67,
+          "records_collected": 19,
+          "log_status": "success"
+        }
+      },
+      "job_id": "bond_DGS10_1764624801_4fb2a966",
+      "execution_id": 69,
+      "log_id": 67,
+      "records_collected": 18,
+      "data_verification": {
+        "status": "PASS",
+        "count": 18,
+        "expected_min": 1,
+        "asset_id": 5,
+        "table": "bond_rates"
+      }
+    },
+    {
+      "test_id": "TEST-005",
+      "test_name": "Commodity - Full History",
+      "status": "PASS",
+      "start_time": "2025-12-01T16:33:23.687492",
+      "end_time": "2025-12-01T16:33:25.868959",
+      "duration_seconds": 2.181467,
+      "error_message": null,
+      "verification_results": {
+        "execution": {
+          "status": "PASS",
+          "execution_id": 70,
+          "log_id": 68,
+          "records_collected": 6,
+          "log_status": "success"
+        }
+      },
+      "job_id": "commodity_CL=F_1764624804_ce742bf7",
+      "execution_id": 70,
+      "log_id": 68,
+      "records_collected": 6,
+      "data_verification": {
+        "status": "PASS",
+        "count": 6,
+        "expected_min": 1,
+        "asset_id": 9,
+        "table": "market_data"
+      }
+    },
+    {
+      "test_id": "TEST-006",
+      "test_name": "Economic Indicator - Full History",
+      "status": "FAIL",
+      "start_time": "2025-12-01T16:33:25.868959",
+      "end_time": "2025-12-01T16:33:27.974657",
+      "duration_seconds": 2.105698,
+      "error_message": "Execution status is failed, expected 'success'",
+      "verification_results": {
+        "execution": {
+          "status": "FAIL",
+          "error": "Execution status is failed, expected 'success'",
+          "error_message": "No data collected for GDP. The collector returned empty results for the date range 2025-09-01 21:33:25.869963+00:00 to 2025-11-30 21:33:25.869963+00:00. This may indicate: 1) The symbol is invalid or not available, 2) No data exists for this date range, 3) API/service returned no data."
+        }
+      },
+      "job_id": "economic_indicator_GDP_1764624806_c63c681e",
+      "execution_id": 71,
+      "log_id": 69,
+      "records_collected": 0,
+      "data_verification": {}
+    }
+  ]
+}

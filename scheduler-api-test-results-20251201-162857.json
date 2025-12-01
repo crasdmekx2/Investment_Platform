@@ -1,0 +1,42 @@
+{
+  "test_run": {
+    "start_time": "2025-12-01T16:28:55.759709",
+    "end_time": "2025-12-01T16:28:57.918112",
+    "total_tests": 1,
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0
+  },
+  "results": [
+    {
+      "test_id": "TEST-003",
+      "test_name": "Forex - Full History",
+      "status": "FAIL",
+      "start_time": "2025-12-01T16:28:55.759709",
+      "end_time": "2025-12-01T16:28:57.917105",
+      "duration_seconds": 2.157396,
+      "error_message": "Expected at least 1 records, got 0",
+      "verification_results": {
+        "execution": {
+          "status": "PASS",
+          "execution_id": 64,
+          "log_id": 62,
+          "records_collected": 1,
+          "log_status": "success"
+        }
+      },
+      "job_id": "forex_USD_EUR_1764624535_2743b6a2",
+      "execution_id": 64,
+      "log_id": 62,
+      "records_collected": 0,
+      "data_verification": {
+        "status": "FAIL",
+        "count": 0,
+        "expected_min": 1,
+        "asset_id": 8,
+        "table": "forex_rates",
+        "error": "Expected at least 1 records, got 0"
+      }
+    }
+  ]
+}

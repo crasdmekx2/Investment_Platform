@@ -1,0 +1,91 @@
+{
+  "test_run": {
+    "start_time": "2025-12-01T16:39:18.748301",
+    "end_time": "2025-12-01T16:39:37.343529",
+    "total_tests": 3,
+    "passed": 2,
+    "failed": 1,
+    "skipped": 0
+  },
+  "results": [
+    {
+      "test_id": "TEST-003",
+      "test_name": "Forex - Full History",
+      "status": "PASS",
+      "start_time": "2025-12-01T16:39:18.748301",
+      "end_time": "2025-12-01T16:39:20.904709",
+      "duration_seconds": 2.156408,
+      "error_message": null,
+      "verification_results": {
+        "execution": {
+          "status": "PASS",
+          "execution_id": 78,
+          "log_id": 76,
+          "records_collected": 1,
+          "log_status": "success"
+        }
+      },
+      "job_id": "forex_USD_EUR_1764625158_adbe1626",
+      "execution_id": 78,
+      "log_id": 76,
+      "records_collected": 1,
+      "data_verification": {
+        "status": "PASS",
+        "count": 1,
+        "expected_min": 1,
+        "asset_id": 8,
+        "table": "forex_rates"
+      }
+    },
+    {
+      "test_id": "TEST-004",
+      "test_name": "Bond - Full History",
+      "status": "PASS",
+      "start_time": "2025-12-01T16:39:20.905714",
+      "end_time": "2025-12-01T16:39:23.099538",
+      "duration_seconds": 2.193824,
+      "error_message": null,
+      "verification_results": {
+        "execution": {
+          "status": "PASS",
+          "execution_id": 79,
+          "log_id": 77,
+          "records_collected": 19,
+          "log_status": "success"
+        }
+      },
+      "job_id": "bond_DGS10_1764625160_3d2e9618",
+      "execution_id": 79,
+      "log_id": 77,
+      "records_collected": 18,
+      "data_verification": {
+        "status": "PASS",
+        "count": 18,
+        "expected_min": 1,
+        "asset_id": 5,
+        "table": "bond_rates"
+      }
+    },
+    {
+      "test_id": "TEST-005",
+      "test_name": "Commodity - Full History",
+      "status": "FAIL",
+      "start_time": "2025-12-01T16:39:23.099538",
+      "end_time": "2025-12-01T16:39:37.341021",
+      "duration_seconds": 14.241483,
+      "error_message": "Execution status is failed, expected 'success'",
+      "verification_results": {
+        "execution": {
+          "status": "FAIL",
+          "error": "Execution status is failed, expected 'success'",
+          "error_message": "Failed to fetch commodity data: ERR#0079: commodity cl=f not found, check if it is correct."
+        }
+      },
+      "job_id": "commodity_CL=F_1764625162_25678a47",
+      "execution_id": 80,
+      "log_id": 78,
+      "records_collected": 0,
+      "data_verification": {}
+    }
+  ]
+}

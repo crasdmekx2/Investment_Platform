@@ -1,0 +1,85 @@
+{
+  "test_run": {
+    "start_time": "2025-12-01T15:17:13.209299",
+    "end_time": "2025-12-01T15:18:15.904188",
+    "total_tests": 3,
+    "passed": 2,
+    "failed": 1,
+    "skipped": 0
+  },
+  "results": [
+    {
+      "test_id": "TEST-001",
+      "test_name": "Stock - Full History with Date Range",
+      "status": "PASS",
+      "start_time": "2025-12-01T15:17:13.209299",
+      "end_time": "2025-12-01T15:17:14.289719",
+      "duration_seconds": 1.08042,
+      "error_message": null,
+      "verification_results": {
+        "job_created": true,
+        "execution": {
+          "status": "PASS",
+          "execution_id": 54,
+          "log_id": null,
+          "warning": "No log_id linked to execution, but execution status is success. Data verification will confirm if data was collected."
+        }
+      },
+      "job_id": "stock_AAPL_1764620233_98f5f717",
+      "execution_id": 54,
+      "log_id": null,
+      "records_collected": 43,
+      "data_verification": {
+        "status": "PASS",
+        "count": 43,
+        "expected_min": 1,
+        "asset_id": 1,
+        "table": "market_data"
+      }
+    },
+    {
+      "test_id": "TEST-002",
+      "test_name": "Crypto - Full History with Granularity",
+      "status": "PASS",
+      "start_time": "2025-12-01T15:17:14.289719",
+      "end_time": "2025-12-01T15:17:15.886259",
+      "duration_seconds": 1.59654,
+      "error_message": null,
+      "verification_results": {
+        "execution": {
+          "status": "PASS",
+          "execution_id": 55,
+          "log_id": 53,
+          "records_collected": 19,
+          "log_status": "success"
+        }
+      },
+      "job_id": "crypto_BTC-USD_1764620234_34f56c3e",
+      "execution_id": 55,
+      "log_id": 53,
+      "records_collected": 168,
+      "data_verification": {
+        "status": "PASS",
+        "count": 168,
+        "expected_min": 1,
+        "asset_id": 4,
+        "table": "market_data"
+      }
+    },
+    {
+      "test_id": "TEST-003",
+      "test_name": "Forex - Full History",
+      "status": "FAIL",
+      "start_time": "2025-12-01T15:17:15.886259",
+      "end_time": "2025-12-01T15:18:15.901189",
+      "duration_seconds": 60.01493,
+      "error_message": "Failed to trigger job",
+      "verification_results": {},
+      "job_id": "forex_USD_EUR_1764620236_a6a1652e",
+      "execution_id": null,
+      "log_id": null,
+      "records_collected": 0,
+      "data_verification": {}
+    }
+  ]
+}

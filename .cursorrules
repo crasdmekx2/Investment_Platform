@@ -1,5 +1,17 @@
 # Cursor Rules for Investment Platform
 
+## Development Standards Reference
+
+**MANDATORY:** All backend development work MUST adhere to the Development Standards document located at `docs/development-standards.md`.
+
+When implementing any backend feature, module, or Python code:
+
+1. **Always consult** the Development Standards document (`docs/development-standards.md`) before writing code
+2. **Ensure compliance** with code style (Black), linting (Flake8), and type checking (mypy)
+3. **Follow** the coding standards, error handling patterns, and testing requirements outlined in the Development Standards
+4. **Reference** the Python Developer role document (`roles/python-developer.md`) for additional context
+5. **Use** the provided checklists and implementation examples as guidelines
+
 ## UX Standards Reference
 
 **MANDATORY:** All front-end development work MUST adhere to the User Experience Standards document located at `docs/ux-standards.md`.
@@ -13,6 +25,32 @@ When implementing any front-end feature, component, or user interface:
 5. **Use** the provided checklists and implementation examples as guidelines
 
 ## Key Requirements
+
+### Backend Development (Non-Negotiable)
+- All code MUST be formatted with Black (line length: 100)
+- All code MUST pass Flake8 linting checks
+- All code MUST include type hints and pass mypy type checking
+- All public functions/classes MUST have docstrings (Google-style)
+- All code MUST have comprehensive test coverage (>80%)
+- All database operations MUST use parameterized queries
+- All secrets MUST be stored in environment variables (never hardcoded)
+- All exceptions MUST be logged with context
+
+### Code Quality Standards
+- Type hints required for all function parameters and return values
+- Docstrings required for all public classes, methods, and functions
+- Error handling with appropriate exception types
+- Logging with appropriate levels and context
+- Database connections using context managers
+- Input validation for all external data
+- Bulk operations for large datasets
+
+### Testing Requirements
+- Unit tests for all public methods
+- Integration tests for component interactions
+- Error cases and edge cases tested
+- Test coverage >80% (critical paths: 100%)
+- Tests use pytest framework with fixtures
 
 ### Accessibility (Non-Negotiable)
 - All implementations MUST meet WCAG 2.2 Level AA standards
@@ -40,6 +78,17 @@ When implementing any front-end feature, component, or user interface:
 - Loading states for all async operations
 - Optimized images and code splitting
 
+## When Implementing Backend Features
+
+Before writing any backend code:
+
+1. **Review** the relevant section in `docs/development-standards.md`
+2. **Check** existing modules in `src/investment_platform/` for patterns
+3. **Ensure** code style, type hints, and documentation requirements are met
+4. **Write** tests alongside implementation (TDD approach)
+5. **Verify** error handling and logging are comprehensive
+6. **Use** the provided code templates and examples as guidelines
+
 ## When Implementing Front-End Features
 
 Before writing any front-end code:
@@ -52,6 +101,27 @@ Before writing any front-end code:
 6. **Use** the provided implementation examples as templates
 
 ## Code Review Checklist
+
+### Backend Code Review
+
+When reviewing backend code, verify:
+
+- [ ] Code formatted with Black (100 char line length)
+- [ ] Code passes Flake8 linting
+- [ ] Code passes mypy type checking
+- [ ] All functions have complete type hints
+- [ ] All public functions have docstrings
+- [ ] Error handling with appropriate exception types
+- [ ] Exceptions logged with context
+- [ ] Database operations use parameterized queries
+- [ ] Database connections use context managers
+- [ ] Input validation performed
+- [ ] Tests written and passing
+- [ ] Test coverage >80%
+- [ ] No hardcoded secrets or credentials
+- [ ] Performance considerations addressed (bulk operations, etc.)
+
+### Front-End Code Review
 
 When reviewing front-end code, verify:
 
@@ -68,13 +138,30 @@ When reviewing front-end code, verify:
 
 ## Reference Documents
 
-- **UX Standards**: `docs/ux-standards.md` (PRIMARY REFERENCE)
+### Backend Development
+- **Development Standards**: `docs/development-standards.md` (PRIMARY REFERENCE FOR BACKEND)
+- **Python Developer Role**: `roles/python-developer.md`
+- **Data Engineer Role**: `roles/data-engineer.md`
+
+### Front-End Development
+- **UX Standards**: `docs/ux-standards.md` (PRIMARY REFERENCE FOR FRONT-END)
 - **UX Expert Role**: `roles/user-experience-expert.md`
 - **Front-End Engineer Role**: `roles/front-end-engineer.md`
 
 ## Project Context
 
 This is an Investment Platform project with:
+
+### Backend Stack
+- Python 3.8+ with type hints
+- PostgreSQL with TimescaleDB
+- Data collection libraries (yfinance, coinbase-advanced-py, fredapi)
+- Data processing with Pandas
+- Scheduling with APScheduler
+- Error handling with Tenacity
+- Rate limiting with ratelimit
+
+### Front-End Stack
 - React + TypeScript front-end
 - Tailwind CSS for styling
 - Financial data visualization requirements
@@ -82,7 +169,15 @@ This is an Investment Platform project with:
 - Trading interface functionality
 - Portfolio management features
 
-All front-end work must prioritize:
+### Backend Development Priorities
+- Code quality and maintainability
+- Type safety and documentation
+- Comprehensive error handling and logging
+- Database performance and data integrity
+- Security (no hardcoded secrets, input validation)
+- Test coverage and reliability
+
+### Front-End Development Priorities
 - User trust and security
 - Accessibility for all users
 - Performance and responsiveness

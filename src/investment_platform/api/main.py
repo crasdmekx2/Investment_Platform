@@ -18,6 +18,7 @@ from investment_platform.api.routers import (
     assets,
 )
 from investment_platform.api import websocket
+from investment_platform.api import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -119,4 +120,14 @@ async def root():
         "version": "1.0.0",
         "docs": "/docs",
     }
+
+
+@app.get("/metrics")
+async def get_metrics():
+    """Prometheus metrics endpoint."""
+    from fastapi import Response
+    return Response(
+        content=metrics.get_metrics(),
+        media_type=metrics.get_metrics_content_type()
+    )
 
