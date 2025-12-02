@@ -37,12 +37,14 @@ export function AssetTypeSelector({ metadata, selected, onSelect, onNext }: Asse
               onClick={() => onSelect(type)}
               className={`
                 p-4 rounded-lg border-2 text-left transition-colors min-h-[120px]
+                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
                 ${isSelected
                   ? 'border-primary-500 bg-primary-50'
                   : 'border-gray-200 hover:border-gray-300 bg-white'
                 }
               `}
               aria-pressed={isSelected}
+              aria-label={`Select ${getAssetTypeDisplayName(type)} asset type`}
             >
               <h3 className="font-semibold text-gray-900 mb-1">
                 {getAssetTypeDisplayName(type)}

@@ -112,9 +112,9 @@ export function ScheduleConfigForm({
       </div>
 
       {/* Trigger Type Selection */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Trigger Type</label>
-        <div className="flex gap-4 flex-wrap">
+      <fieldset>
+        <legend className="block text-sm font-medium text-gray-700 mb-2">Trigger Type</legend>
+        <div className="flex gap-4 flex-wrap" role="radiogroup">
           <label className="flex items-center space-x-2 cursor-pointer min-h-[44px]">
             <input
               type="radio"
@@ -122,7 +122,8 @@ export function ScheduleConfigForm({
               value="interval"
               checked={triggerType === 'interval'}
               onChange={() => handleTriggerTypeChange('interval')}
-              className="w-5 h-5 text-primary-600 border-gray-300 focus:ring-primary-500"
+              className="w-5 h-5 text-primary-600 border-gray-300 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              aria-label="Interval trigger"
             />
             <span className="text-sm font-medium text-gray-700">Interval</span>
           </label>
@@ -133,7 +134,8 @@ export function ScheduleConfigForm({
               value="cron"
               checked={triggerType === 'cron'}
               onChange={() => handleTriggerTypeChange('cron')}
-              className="w-5 h-5 text-primary-600 border-gray-300 focus:ring-primary-500"
+              className="w-5 h-5 text-primary-600 border-gray-300 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              aria-label="Cron schedule trigger"
             />
             <span className="text-sm font-medium text-gray-700">Cron Schedule</span>
           </label>
@@ -145,7 +147,8 @@ export function ScheduleConfigForm({
                 value="now"
                 checked={triggerType === 'now'}
                 onChange={() => handleTriggerTypeChange('now')}
-                className="w-5 h-5 text-primary-600 border-gray-300 focus:ring-primary-500"
+                className="w-5 h-5 text-primary-600 border-gray-300 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                aria-label="Schedule now trigger"
               />
               <span className="text-sm font-medium text-gray-700">Schedule Now</span>
             </label>
@@ -188,8 +191,12 @@ export function ScheduleConfigForm({
                 const updated = { ...intervalConfig, hours: parseInt(e.target.value) || 0, execute_now: false };
                 setIntervalConfig(updated);
               }}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
+              aria-describedby="interval-hours-help"
             />
+            <p id="interval-hours-help" className="sr-only">
+              Number of hours between job executions
+            </p>
           </div>
           <div>
             <label htmlFor="interval-minutes" className="block text-sm font-medium text-gray-700 mb-2">
@@ -204,8 +211,12 @@ export function ScheduleConfigForm({
                 const updated = { ...intervalConfig, minutes: parseInt(e.target.value) || 0, execute_now: false };
                 setIntervalConfig(updated);
               }}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
+              aria-describedby="interval-minutes-help"
             />
+            <p id="interval-minutes-help" className="sr-only">
+              Number of minutes between job executions
+            </p>
           </div>
         </div>
       )}
@@ -226,8 +237,12 @@ export function ScheduleConfigForm({
                 setCronConfig(updated);
               }}
               placeholder="9"
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
+              aria-describedby="cron-hour-help"
             />
+            <p id="cron-hour-help" className="mt-1 text-sm text-gray-500">
+              Hour of day (0-23) when job should run
+            </p>
           </div>
           <div>
             <label htmlFor="cron-minute" className="block text-sm font-medium text-gray-700 mb-2">
@@ -242,8 +257,12 @@ export function ScheduleConfigForm({
                 setCronConfig(updated);
               }}
               placeholder="0"
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
+              aria-describedby="cron-minute-help"
             />
+            <p id="cron-minute-help" className="mt-1 text-sm text-gray-500">
+              Minute of hour (0-59) when job should run
+            </p>
           </div>
         </div>
       )}
@@ -275,7 +294,7 @@ export function ScheduleConfigForm({
                   onRetryConfigUpdate(value, retryDelay, retryBackoff);
                 }
               }}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
               aria-describedby="max-retries-help"
             />
             <p id="max-retries-help" className="mt-1 text-sm text-gray-500">
@@ -299,7 +318,7 @@ export function ScheduleConfigForm({
                   onRetryConfigUpdate(retryMaxRetries, value, retryBackoff);
                 }
               }}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
               aria-describedby="retry-delay-help"
             />
             <p id="retry-delay-help" className="mt-1 text-sm text-gray-500">
@@ -324,7 +343,7 @@ export function ScheduleConfigForm({
                   onRetryConfigUpdate(retryMaxRetries, retryDelay, value);
                 }
               }}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
               aria-describedby="retry-backoff-help"
             />
             <p id="retry-backoff-help" className="mt-1 text-sm text-gray-500">

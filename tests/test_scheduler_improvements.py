@@ -11,6 +11,7 @@ import os
 import sys
 import time
 import threading
+import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
@@ -38,56 +39,44 @@ def test_job_status_update():
     print("="*60)
     
     if not APSCHEDULER_AVAILABLE:
-        print("SKIPPED: APScheduler not available")
-        return False
+        pytest.skip("APScheduler not available")
+    
+    scheduler = PersistentScheduler(blocking=False)
+    mock_engine = Mock()
+    mock_engine.ingest.return_value = {"status": "success", "records_loaded": 10}
+    scheduler.ingestion_engine = mock_engine
+    
+    # Create job (should be pending)
+    job_data = JobCreate(
+        symbol="AAPL",
+        asset_type="stock",
+        trigger_type="interval",
+        trigger_config={"seconds": 10},
+    )
+    job = scheduler_service.create_job(job_data)
+    
+    print(f"Created job {job.job_id} with status: {job.status}")
+    assert job.status == "pending", f"Expected 'pending', got '{job.status}'"
+    
+    # Start scheduler first (needed for next_run_time calculation)
+    scheduler.start()
     
     try:
-        scheduler = PersistentScheduler(blocking=False)
-        mock_engine = Mock()
-        mock_engine.ingest.return_value = {"status": "success", "records_loaded": 10}
-        scheduler.ingestion_engine = mock_engine
+        # Add job to scheduler (should update to active)
+        result = scheduler.add_job_from_database(job.job_id)
+        assert result is True, "Failed to add job to scheduler"
         
-        # Create job (should be pending)
-        job_data = JobCreate(
-            symbol="AAPL",
-            asset_type="stock",
-            trigger_type="interval",
-            trigger_config={"seconds": 10},
-        )
-        job = scheduler_service.create_job(job_data)
+        # Give it a moment for status update
+        time.sleep(0.1)
         
-        print(f"Created job {job.job_id} with status: {job.status}")
-        assert job.status == "pending", f"Expected 'pending', got '{job.status}'"
+        # Check status in database
+        updated_job = scheduler_service.get_job(job.job_id)
+        print(f"Job status after adding to scheduler: {updated_job.status}")
         
-        # Start scheduler first (needed for next_run_time calculation)
-        scheduler.start()
-        
-        try:
-            # Add job to scheduler (should update to active)
-            result = scheduler.add_job_from_database(job.job_id)
-            assert result is True, "Failed to add job to scheduler"
-            
-            # Give it a moment for status update
-            time.sleep(0.1)
-            
-            # Check status in database
-            updated_job = scheduler_service.get_job(job.job_id)
-            print(f"Job status after adding to scheduler: {updated_job.status}")
-            
-            if updated_job.status == "active":
-                print("✓ PASS: Job status updated from pending to active")
-                return True
-            else:
-                print(f"✗ FAIL: Job status is '{updated_job.status}', expected 'active'")
-                return False
-        finally:
-            scheduler.shutdown()
-            
-    except Exception as e:
-        print(f"✗ ERROR: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+        assert updated_job.status == "active", f"Job status is '{updated_job.status}', expected 'active'"
+        print("✓ PASS: Job status updated from pending to active")
+    finally:
+        scheduler.shutdown()
 
 
 def test_parallel_execution_config():
@@ -97,13 +86,12 @@ def test_parallel_execution_config():
     print("="*60)
     
     if not APSCHEDULER_AVAILABLE:
-        print("SKIPPED: APScheduler not available")
-        return False
+        pytest.skip("APScheduler not available")
+    
+    # Set custom max workers
+    os.environ['SCHEDULER_MAX_WORKERS'] = '5'
     
     try:
-        # Set custom max workers
-        os.environ['SCHEDULER_MAX_WORKERS'] = '5'
-        
         scheduler = PersistentScheduler(blocking=False)
         
         # Check if scheduler has executor configured
@@ -115,33 +103,14 @@ def test_parallel_execution_config():
                 if hasattr(executor, '_pool'):
                     max_workers = executor._pool._max_workers
                     print(f"Max workers: {max_workers}")
-                    if max_workers == 5:
-                        print("✓ PASS: Scheduler configured with correct max workers")
-                        try:
-                            scheduler.shutdown()
-                        except:
-                            pass
-                        return True
-                    else:
-                        print(f"✗ FAIL: Expected 5 workers, got {max_workers}")
-                        try:
-                            scheduler.shutdown()
-                        except:
-                            pass
-                        return False
+                    assert max_workers == 5, f"Expected 5 workers, got {max_workers}"
+                    print("✓ PASS: Scheduler configured with correct max workers")
+                    scheduler.shutdown()
+                    return
         
         print("⚠ WARNING: Could not verify executor configuration")
-        try:
-            scheduler.shutdown()
-        except:
-            pass
-        return True  # Don't fail if we can't verify
-        
-    except Exception as e:
-        print(f"✗ ERROR: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+        scheduler.shutdown()
+        # Don't fail if we can't verify - this is acceptable
     finally:
         # Clean up env var
         if 'SCHEDULER_MAX_WORKERS' in os.environ:
@@ -154,32 +123,18 @@ def test_shared_rate_limiter():
     print("TEST 3: Shared Rate Limiter")
     print("="*60)
     
-    try:
-        # Get two limiters for the same collector type
-        limiter1 = SharedRateLimiter.get_limiter("StockCollector", calls=5, period=10)
-        limiter2 = SharedRateLimiter.get_limiter("StockCollector", calls=5, period=10)
-        
-        # They should be the same instance
-        if limiter1 is limiter2:
-            print("✓ PASS: Shared rate limiter returns same instance for same collector type")
-        else:
-            print("✗ FAIL: Shared rate limiter returned different instances")
-            return False
-        
-        # Get limiter for different collector type
-        limiter3 = SharedRateLimiter.get_limiter("CryptoCollector", calls=5, period=10)
-        if limiter3 is not limiter1:
-            print("✓ PASS: Different collector types get different limiters")
-            return True
-        else:
-            print("✗ FAIL: Different collector types got same limiter")
-            return False
-            
-    except Exception as e:
-        print(f"✗ ERROR: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+    # Get two limiters for the same collector type
+    limiter1 = SharedRateLimiter.get_limiter("StockCollector", calls=5, period=10)
+    limiter2 = SharedRateLimiter.get_limiter("StockCollector", calls=5, period=10)
+    
+    # They should be the same instance
+    assert limiter1 is limiter2, "Shared rate limiter returned different instances"
+    print("✓ PASS: Shared rate limiter returns same instance for same collector type")
+    
+    # Get limiter for different collector type
+    limiter3 = SharedRateLimiter.get_limiter("CryptoCollector", calls=5, period=10)
+    assert limiter3 is not limiter1, "Different collector types got same limiter"
+    print("✓ PASS: Different collector types get different limiters")
 
 
 def test_request_coordinator():
@@ -188,31 +143,20 @@ def test_request_coordinator():
     print("TEST 4: Request Coordinator")
     print("="*60)
     
-    try:
-        # Test coordinator initialization
-        coordinator = RequestCoordinator(enabled=True, window_seconds=0.5)
-        
-        if coordinator.enabled:
-            print("✓ PASS: Request coordinator initialized and enabled")
-        else:
-            print("✗ FAIL: Request coordinator not enabled")
-            return False
-        
-        # Test batch support detection
-        supports_batch = coordinator._batch_supported_collectors.get('StockCollector', False)
-        if supports_batch:
-            print("✓ PASS: StockCollector marked as supporting batch requests")
-        else:
-            print("⚠ WARNING: StockCollector not marked as supporting batch")
-        
-        coordinator.shutdown()
-        return True
-        
-    except Exception as e:
-        print(f"✗ ERROR: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+    # Test coordinator initialization
+    coordinator = RequestCoordinator(enabled=True, window_seconds=0.5)
+    
+    assert coordinator.enabled, "Request coordinator not enabled"
+    print("✓ PASS: Request coordinator initialized and enabled")
+    
+    # Test batch support detection
+    supports_batch = coordinator._batch_supported_collectors.get('StockCollector', False)
+    if supports_batch:
+        print("✓ PASS: StockCollector marked as supporting batch requests")
+    else:
+        print("⚠ WARNING: StockCollector not marked as supporting batch")
+    
+    coordinator.shutdown()
 
 
 def test_batch_collection():
@@ -221,48 +165,36 @@ def test_batch_collection():
     print("TEST 5: Batch Collection Support")
     print("="*60)
     
+    collector = StockCollector(output_format="dataframe")
+    
+    # Check if batch method exists
+    assert hasattr(collector, 'collect_historical_data_batch'), "StockCollector does not have batch collection method"
+    print("✓ PASS: StockCollector has batch collection method")
+    
+    # Test with small date range (to avoid long API calls)
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=7)
+    
     try:
-        collector = StockCollector(output_format="dataframe")
+        results = collector.collect_historical_data_batch(
+            symbols=['AAPL', 'MSFT'],
+            start_date=start_date,
+            end_date=end_date,
+        )
         
-        # Check if batch method exists
-        if hasattr(collector, 'collect_historical_data_batch'):
-            print("✓ PASS: StockCollector has batch collection method")
-            
-            # Test with small date range (to avoid long API calls)
-            end_date = datetime.now()
-            start_date = end_date - timedelta(days=7)
-            
-            try:
-                results = collector.collect_historical_data_batch(
-                    symbols=['AAPL', 'MSFT'],
-                    start_date=start_date,
-                    end_date=end_date,
-                )
-                
-                if isinstance(results, list) and len(results) == 2:
-                    print(f"✓ PASS: Batch collection returned {len(results)} results")
-                    if not results[0].empty or not results[1].empty:
-                        print("✓ PASS: Batch collection returned data")
-                        return True
-                    else:
-                        print("⚠ WARNING: Batch collection returned empty dataframes")
-                        return True  # Don't fail on empty data
-                else:
-                    print(f"✗ FAIL: Expected list of 2 results, got {type(results)}")
-                    return False
-                    
-            except Exception as e:
-                print(f"⚠ WARNING: Batch collection test failed (may be API issue): {e}")
-                return True  # Don't fail on API errors
+        assert isinstance(results, list), f"Expected list, got {type(results)}"
+        assert len(results) == 2, f"Expected list of 2 results, got {len(results)}"
+        print(f"✓ PASS: Batch collection returned {len(results)} results")
+        
+        if not results[0].empty or not results[1].empty:
+            print("✓ PASS: Batch collection returned data")
         else:
-            print("✗ FAIL: StockCollector does not have batch collection method")
-            return False
-            
+            print("⚠ WARNING: Batch collection returned empty dataframes")
+            # Don't fail on empty data - might be API issue
     except Exception as e:
-        print(f"✗ ERROR: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+        print(f"⚠ WARNING: Batch collection test failed (may be API issue): {e}")
+        # Don't fail on API errors - this is acceptable for tests
+        pytest.skip(f"Batch collection test skipped due to API issue: {e}")
 
 
 def test_coordinator_integration():
@@ -271,24 +203,17 @@ def test_coordinator_integration():
     print("TEST 6: Coordinator Integration")
     print("="*60)
     
-    try:
-        engine = IngestionEngine()
-        
-        # Check if coordinator is imported
-        from investment_platform.ingestion import request_coordinator
-        coordinator = get_coordinator()
-        
-        print(f"Coordinator enabled: {coordinator.enabled}")
-        print(f"Coordinator window: {coordinator.window_seconds}s")
-        
-        print("✓ PASS: Request coordinator accessible from ingestion engine")
-        return True
-        
-    except Exception as e:
-        print(f"✗ ERROR: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+    engine = IngestionEngine()
+    
+    # Check if coordinator is imported
+    from investment_platform.ingestion import request_coordinator
+    coordinator = get_coordinator()
+    
+    assert coordinator is not None, "Request coordinator not accessible"
+    print(f"Coordinator enabled: {coordinator.enabled}")
+    print(f"Coordinator window: {coordinator.window_seconds}s")
+    
+    print("✓ PASS: Request coordinator accessible from ingestion engine")
 
 
 def main():

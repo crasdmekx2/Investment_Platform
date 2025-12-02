@@ -99,9 +99,7 @@ class CryptoCollector(BaseDataCollector):
             # Validate dates
             start_dt, end_dt = self._validate_dates(start_date, end_date)
 
-            self.logger.info(
-                f"Collecting crypto data for {symbol} from {start_dt} to {end_dt}"
-            )
+            self.logger.info(f"Collecting crypto data for {symbol} from {start_dt} to {end_dt}")
 
             # Convert dates to Unix timestamps (seconds since epoch)
             # Coinbase Advanced API expects timestamps as Unix timestamps (seconds)
@@ -122,12 +120,12 @@ class CryptoCollector(BaseDataCollector):
                 raise APIError(f"No data returned for {symbol}")
 
             # Try to get candles from the response object
-            if hasattr(response, 'candles'):
+            if hasattr(response, "candles"):
                 candles = response.candles
-            elif hasattr(response, 'to_dict'):
+            elif hasattr(response, "to_dict"):
                 response_dict = response.to_dict()
                 candles = response_dict.get("candles", [])
-            elif hasattr(response, '__dict__'):
+            elif hasattr(response, "__dict__"):
                 candles = response.__dict__.get("candles", [])
             else:
                 # Try to access as dict-like
@@ -148,22 +146,24 @@ class CryptoCollector(BaseDataCollector):
                 elif isinstance(candle, (list, tuple)) and len(candle) >= 6:
                     # Handle list format: [timestamp, low, high, open, close, volume]
                     # Or: [start, open, high, low, close, volume]
-                    candles_list.append({
-                        "start": candle[0],
-                        "open": candle[3] if len(candle) > 3 else candle[1],
-                        "high": candle[2] if len(candle) > 2 else candle[1],
-                        "low": candle[1] if len(candle) > 1 else candle[0],
-                        "close": candle[4] if len(candle) > 4 else candle[2],
-                        "volume": candle[5] if len(candle) > 5 else candle[3],
-                    })
-                elif hasattr(candle, 'to_dict'):
+                    candles_list.append(
+                        {
+                            "start": candle[0],
+                            "open": candle[3] if len(candle) > 3 else candle[1],
+                            "high": candle[2] if len(candle) > 2 else candle[1],
+                            "low": candle[1] if len(candle) > 1 else candle[0],
+                            "close": candle[4] if len(candle) > 4 else candle[2],
+                            "volume": candle[5] if len(candle) > 5 else candle[3],
+                        }
+                    )
+                elif hasattr(candle, "to_dict"):
                     candles_list.append(candle.to_dict())
-                elif hasattr(candle, '__dict__'):
+                elif hasattr(candle, "__dict__"):
                     candles_list.append(candle.__dict__)
                 else:
                     # Try to access common attributes
                     candle_dict = {}
-                    for attr in ['start', 'open', 'high', 'low', 'close', 'volume']:
+                    for attr in ["start", "open", "high", "low", "close", "volume"]:
                         if hasattr(candle, attr):
                             candle_dict[attr] = getattr(candle, attr)
                     if candle_dict:
@@ -171,7 +171,7 @@ class CryptoCollector(BaseDataCollector):
                     else:
                         # Fallback: try to convert to dict
                         try:
-                            candles_list.append(dict(candle) if hasattr(candle, '__iter__') else {})
+                            candles_list.append(dict(candle) if hasattr(candle, "__iter__") else {})
                         except (TypeError, ValueError):
                             self.logger.warning(f"Could not convert candle to dict: {type(candle)}")
                             continue
@@ -225,12 +225,14 @@ class CryptoCollector(BaseDataCollector):
                             numeric_value = float(sample_value)
                         else:
                             numeric_value = float(sample_value)
-                        
+
                         # If it's a numeric Unix timestamp (seconds), convert with unit='s'
                         # Unix timestamps are typically > 1000000000 (year 2001)
                         if numeric_value > 1000000000:
                             # Unix timestamp in seconds
-                            df["timestamp"] = pd.to_datetime(df["timestamp"].astype(float), unit='s')
+                            df["timestamp"] = pd.to_datetime(
+                                df["timestamp"].astype(float), unit="s"
+                            )
                         else:
                             # Try to parse as datetime string
                             df["timestamp"] = pd.to_datetime(df["timestamp"])
@@ -280,23 +282,37 @@ class CryptoCollector(BaseDataCollector):
             # Extract relevant information
             # Response is a GetProductResponse object, access attributes directly
             # or convert to dict if it has that method
-            if hasattr(response, 'to_dict'):
+            if hasattr(response, "to_dict"):
                 response_dict = response.to_dict()
-            elif hasattr(response, '__dict__'):
+            elif hasattr(response, "__dict__"):
                 response_dict = response.__dict__
             else:
                 # Try to access attributes directly
                 response_dict = {}
-                for attr in ['product_id', 'base_currency', 'quote_currency', 'display_name', 'status']:
+                for attr in [
+                    "product_id",
+                    "base_currency",
+                    "quote_currency",
+                    "display_name",
+                    "status",
+                ]:
                     if hasattr(response, attr):
                         response_dict[attr] = getattr(response, attr)
 
             asset_info = {
                 "symbol": symbol,
-                "product_id": response_dict.get("product_id", getattr(response, "product_id", symbol)),
-                "base_currency": response_dict.get("base_currency", getattr(response, "base_currency", "")),
-                "quote_currency": response_dict.get("quote_currency", getattr(response, "quote_currency", "")),
-                "display_name": response_dict.get("display_name", getattr(response, "display_name", symbol)),
+                "product_id": response_dict.get(
+                    "product_id", getattr(response, "product_id", symbol)
+                ),
+                "base_currency": response_dict.get(
+                    "base_currency", getattr(response, "base_currency", "")
+                ),
+                "quote_currency": response_dict.get(
+                    "quote_currency", getattr(response, "quote_currency", "")
+                ),
+                "display_name": response_dict.get(
+                    "display_name", getattr(response, "display_name", symbol)
+                ),
                 "status": response_dict.get("status", getattr(response, "status", "unknown")),
                 "type": "cryptocurrency",
             }
@@ -308,4 +324,3 @@ class CryptoCollector(BaseDataCollector):
         except Exception as e:
             self._handle_error(e, f"get_asset_info for {symbol}")
             raise
-

@@ -16,6 +16,7 @@ try:
     from apscheduler.triggers.interval import IntervalTrigger
     from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
     from apscheduler.executors.pool import ThreadPoolExecutor as APSchedulerThreadPoolExecutor
+
     APSCHEDULER_AVAILABLE = True
 except ImportError:
     APSCHEDULER_AVAILABLE = False
@@ -36,7 +37,7 @@ class IngestionScheduler:
     ):
         """
         Initialize the IngestionScheduler.
-        
+
         Args:
             blocking: Whether to use blocking scheduler (runs in foreground)
             timezone: Timezone for scheduling (default: system timezone)
@@ -46,37 +47,35 @@ class IngestionScheduler:
                 "APScheduler is required for scheduling. "
                 "Install it with: pip install apscheduler"
             )
-        
+
         self.logger = logger
         self.ingestion_engine = IngestionEngine()
-        
+
         # Get max workers from environment variable (default: 10)
         max_workers = int(os.getenv("SCHEDULER_MAX_WORKERS", "10"))
-        
+
         if blocking:
             self.scheduler = BlockingScheduler(timezone=timezone)
         else:
             # Configure executor for parallel job execution
-            executors = {
-                'default': APSchedulerThreadPoolExecutor(max_workers=max_workers)
-            }
+            executors = {"default": APSchedulerThreadPoolExecutor(max_workers=max_workers)}
             job_defaults = {
-                'coalesce': False,  # Don't combine multiple pending executions
-                'max_instances': 3,  # Allow up to 3 concurrent instances of same job
+                "coalesce": False,  # Don't combine multiple pending executions
+                "max_instances": 3,  # Allow up to 3 concurrent instances of same job
             }
             self.scheduler = BackgroundScheduler(
-                timezone=timezone,
-                executors=executors,
-                job_defaults=job_defaults
+                timezone=timezone, executors=executors, job_defaults=job_defaults
             )
-            self.logger.info(f"Configured scheduler with {max_workers} worker threads for parallel execution")
-        
+            self.logger.info(
+                f"Configured scheduler with {max_workers} worker threads for parallel execution"
+            )
+
         # Register event listeners
         self.scheduler.add_listener(
             self._job_listener,
             EVENT_JOB_EXECUTED | EVENT_JOB_ERROR,
         )
-        
+
         # Setup signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
@@ -98,7 +97,7 @@ class IngestionScheduler:
     ) -> str:
         """
         Add an ingestion job to the scheduler.
-        
+
         Args:
             symbol: Asset symbol
             asset_type: Type of asset
@@ -112,35 +111,40 @@ class IngestionScheduler:
             retry_delay_seconds: Initial delay in seconds before first retry (default: 60)
             retry_backoff_multiplier: Multiplier for exponential backoff (default: 2.0)
             **kwargs: Additional kwargs for scheduler.add_job
-            
+
         Returns:
             Job ID
         """
         if job_id is None:
             job_id = f"{asset_type}_{symbol}_{int(datetime.now().timestamp())}"
-        
+
         # Store retry configuration
         job_max_retries = max_retries if max_retries is not None else 3
         job_retry_delay = retry_delay_seconds if retry_delay_seconds is not None else 60
-        job_backoff_multiplier = retry_backoff_multiplier if retry_backoff_multiplier is not None else 2.0
-        
+        job_backoff_multiplier = (
+            retry_backoff_multiplier if retry_backoff_multiplier is not None else 2.0
+        )
+
         # Store date configuration (None means use defaults calculated at runtime)
         # Dates are calculated fresh at execution time to support incremental collection
         job_start_date = start_date
         job_end_date = end_date
-        
+
         # Create job function
         def ingestion_job():
             import time
+
             start_time = time.time()
-            
+
             self.logger.info(f"Executing scheduled ingestion for {symbol} ({asset_type})")
-            
+
             # Calculate dates fresh at execution time
             # If dates were provided at job creation, use them; otherwise calculate defaults
             exec_end_date = job_end_date if job_end_date is not None else datetime.now()
-            exec_start_date = job_start_date if job_start_date is not None else exec_end_date - timedelta(days=1)
-            
+            exec_start_date = (
+                job_start_date if job_start_date is not None else exec_end_date - timedelta(days=1)
+            )
+
             try:
                 result = self.ingestion_engine.ingest(
                     symbol=symbol,
@@ -150,11 +154,11 @@ class IngestionScheduler:
                     collector_kwargs=collector_kwargs,
                     asset_metadata=asset_metadata,
                 )
-                
+
                 # Calculate execution time
                 execution_time_ms = int((time.time() - start_time) * 1000)
-                result['execution_time_ms'] = execution_time_ms
-                
+                result["execution_time_ms"] = execution_time_ms
+
                 self.logger.info(
                     f"Completed scheduled ingestion for {symbol}: "
                     f"status={result['status']}, records={result['records_loaded']}, "
@@ -164,14 +168,11 @@ class IngestionScheduler:
             except Exception as e:
                 # Calculate execution time even on error
                 execution_time_ms = int((time.time() - start_time) * 1000)
-                self.logger.error(
-                    f"Failed scheduled ingestion for {symbol}: {e}",
-                    exc_info=True
-                )
-                
+                self.logger.error(f"Failed scheduled ingestion for {symbol}: {e}", exc_info=True)
+
                 # Classify error
                 error_category, recovery_suggestion = classify_error(e, str(e))
-                
+
                 # ingest() should never raise, but if it does, create a result dict
                 # This ensures we always return a result that can be logged
                 result = {
@@ -189,7 +190,7 @@ class IngestionScheduler:
                     "retry_backoff_multiplier": job_backoff_multiplier,
                 }
                 return result
-        
+
         # Add job to scheduler
         self.scheduler.add_job(
             ingestion_job,
@@ -197,11 +198,9 @@ class IngestionScheduler:
             id=job_id,
             **kwargs,
         )
-        
-        self.logger.info(
-            f"Added scheduled job: {job_id} for {symbol} ({asset_type})"
-        )
-        
+
+        self.logger.info(f"Added scheduled job: {job_id} for {symbol} ({asset_type})")
+
         return job_id
 
     def add_interval_job(
@@ -217,7 +216,7 @@ class IngestionScheduler:
     ) -> str:
         """
         Add a job that runs at regular intervals.
-        
+
         Args:
             symbol: Asset symbol
             asset_type: Type of asset
@@ -227,7 +226,7 @@ class IngestionScheduler:
             start_date: Start date for data collection
             end_date: End date for data collection
             **kwargs: Additional kwargs for add_job
-            
+
         Returns:
             Job ID
         """
@@ -237,7 +236,7 @@ class IngestionScheduler:
             minutes=minutes,
             seconds=seconds,
         )
-        
+
         return self.add_job(
             symbol=symbol,
             asset_type=asset_type,
@@ -265,7 +264,7 @@ class IngestionScheduler:
     ) -> str:
         """
         Add a job that runs on a cron schedule.
-        
+
         Args:
             symbol: Asset symbol
             asset_type: Type of asset
@@ -280,7 +279,7 @@ class IngestionScheduler:
             start_date: Start date for data collection
             end_date: End date for data collection
             **kwargs: Additional kwargs for add_job
-            
+
         Returns:
             Job ID
         """
@@ -295,7 +294,7 @@ class IngestionScheduler:
             minute=minute,
             second=second,
         )
-        
+
         return self.add_job(
             symbol=symbol,
             asset_type=asset_type,
@@ -308,10 +307,10 @@ class IngestionScheduler:
     def load_config(self, config_path: Path) -> List[str]:
         """
         Load scheduler configuration from YAML/JSON file.
-        
+
         Args:
             config_path: Path to configuration file
-            
+
         Returns:
             List of job IDs added
         """
@@ -319,14 +318,14 @@ class IngestionScheduler:
             import yaml
         except ImportError:
             yaml = None
-        
+
         import json
-        
+
         config_path = Path(config_path)
-        
+
         if not config_path.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
-        
+
         # Load config based on extension
         if config_path.suffix in [".yaml", ".yml"]:
             if yaml is None:
@@ -344,36 +343,36 @@ class IngestionScheduler:
                 f"Unsupported config file format: {config_path.suffix}. "
                 "Use .yaml, .yml, or .json"
             )
-        
+
         job_ids = []
-        
+
         # Process jobs from config
         jobs = config.get("jobs", [])
-        
+
         for job_config in jobs:
             symbol = job_config["symbol"]
             asset_type = job_config["asset_type"]
-            
+
             # Parse trigger
             trigger_config = job_config.get("trigger", {})
             trigger_type = trigger_config.get("type", "interval")
-            
+
             if trigger_type == "interval":
                 trigger = IntervalTrigger(**trigger_config.get("params", {}))
             elif trigger_type == "cron":
                 trigger = CronTrigger(**trigger_config.get("params", {}))
             else:
                 raise ValueError(f"Unknown trigger type: {trigger_type}")
-            
+
             # Parse dates
             start_date = None
             end_date = None
-            
+
             if "start_date" in job_config and job_config["start_date"] is not None:
                 start_date = datetime.fromisoformat(job_config["start_date"])
             if "end_date" in job_config and job_config["end_date"] is not None:
                 end_date = datetime.fromisoformat(job_config["end_date"])
-            
+
             # Add job
             job_id = self.add_job(
                 symbol=symbol,
@@ -385,11 +384,11 @@ class IngestionScheduler:
                 asset_metadata=job_config.get("asset_metadata"),
                 job_id=job_config.get("job_id"),
             )
-            
+
             job_ids.append(job_id)
-        
+
         self.logger.info(f"Loaded {len(job_ids)} jobs from config file")
-        
+
         return job_ids
 
     def start(self):
@@ -409,7 +408,7 @@ class IngestionScheduler:
     def _job_listener(self, event):
         """Handle job execution events."""
         import time
-        
+
         job_id = event.job_id
         execution_status = "success"
         error_message = None
@@ -417,22 +416,22 @@ class IngestionScheduler:
         execution_time_ms = None
         log_id = None
         retry_attempt = 0  # Default to 0 for first attempt
-        
+
         # Get result from event if available
-        if hasattr(event, 'retval') and isinstance(event.retval, dict):
+        if hasattr(event, "retval") and isinstance(event.retval, dict):
             result = event.retval
             # Get execution time and log_id from result (calculated in job function)
-            execution_time_ms = result.get('execution_time_ms')
-            log_id = result.get('log_id')
-            retry_attempt = result.get('retry_attempt', 0)
-            
+            execution_time_ms = result.get("execution_time_ms")
+            log_id = result.get("log_id")
+            retry_attempt = result.get("retry_attempt", 0)
+
             # Determine status and error message from result
-            result_status = result.get('status', 'unknown')
-            if result_status == 'failed':
+            result_status = result.get("status", "unknown")
+            if result_status == "failed":
                 execution_status = "failed"
-                error_message = result.get('error_message') or "Ingestion failed"
-                error_category = result.get('error_category')
-            elif result_status == 'partial':
+                error_message = result.get("error_message") or "Ingestion failed"
+                error_category = result.get("error_category")
+            elif result_status == "partial":
                 execution_status = "success"  # Partial success is still considered success
             else:
                 execution_status = "success"
@@ -447,16 +446,22 @@ class IngestionScheduler:
             )
         else:
             self.logger.debug(f"Job {job_id} executed successfully")
-        
+
         # Fallback: try to calculate execution time from event times if not available
-        if execution_time_ms is None and hasattr(event, 'scheduled_run_time') and hasattr(event, 'run_time'):
+        if (
+            execution_time_ms is None
+            and hasattr(event, "scheduled_run_time")
+            and hasattr(event, "run_time")
+        ):
             try:
-                execution_time_ms = int((event.run_time - event.scheduled_run_time).total_seconds() * 1000)
+                execution_time_ms = int(
+                    (event.run_time - event.scheduled_run_time).total_seconds() * 1000
+                )
             except Exception:
                 pass
-        
+
         # Record execution if this is a PersistentScheduler
-        if hasattr(self, 'record_execution'):
+        if hasattr(self, "record_execution"):
             try:
                 self.record_execution(
                     job_id=job_id,
@@ -468,11 +473,12 @@ class IngestionScheduler:
                     retry_attempt=retry_attempt,
                 )
             except Exception as e:
-                self.logger.error(f"Failed to record execution for job {job_id}: {e}", exc_info=True)
+                self.logger.error(
+                    f"Failed to record execution for job {job_id}: {e}", exc_info=True
+                )
 
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals."""
         self.logger.info(f"Received signal {signum}, shutting down...")
         self.shutdown()
         sys.exit(0)
-

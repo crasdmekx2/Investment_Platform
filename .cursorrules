@@ -24,6 +24,19 @@ When implementing any front-end feature, component, or user interface:
 4. **Reference** the UX Expert role document (`roles/user-experience-expert.md`) for additional context
 5. **Use** the provided checklists and implementation examples as guidelines
 
+## Testing Standards Reference
+
+**MANDATORY:** All development work (backend and front-end) MUST adhere to the Testing Standards document located at `docs/testing-standards.md`.
+
+When implementing any feature, module, component, or code:
+
+1. **Always consult** the Testing Standards document (`docs/testing-standards.md`) before writing code
+2. **Ensure compliance** with testing requirements (unit, integration, E2E testing)
+3. **Follow** the testing patterns, coverage requirements, and test organization standards outlined in the Testing Standards
+4. **Reference** the QA Tester role document (`roles/qa-tester.md`) for additional context
+5. **Use** the provided test templates, checklists, and implementation examples as guidelines
+6. **Generate backlog items** from test failures in markdown format as specified in the Testing Standards
+
 ## Key Requirements
 
 ### Backend Development (Non-Negotiable)
@@ -45,12 +58,17 @@ When implementing any front-end feature, component, or user interface:
 - Input validation for all external data
 - Bulk operations for large datasets
 
-### Testing Requirements
-- Unit tests for all public methods
-- Integration tests for component interactions
+### Testing Requirements (Non-Negotiable)
+- Unit tests for all public methods and components
+- Integration tests for component interactions, API endpoints, and database operations
+- End-to-end tests for critical user flows and financial transactions
 - Error cases and edge cases tested
-- Test coverage >80% (critical paths: 100%)
-- Tests use pytest framework with fixtures
+- Test coverage >80% overall (critical paths: 100%)
+- Backend tests use pytest framework with fixtures
+- Frontend tests use Jest and React Testing Library
+- Tests must be runnable at any time
+- Test failures must generate backlog items in markdown format
+- All tests must execute automatically in CI/CD
 
 ### Accessibility (Non-Negotiable)
 - All implementations MUST meet WCAG 2.2 Level AA standards
@@ -83,22 +101,29 @@ When implementing any front-end feature, component, or user interface:
 Before writing any backend code:
 
 1. **Review** the relevant section in `docs/development-standards.md`
-2. **Check** existing modules in `src/investment_platform/` for patterns
-3. **Ensure** code style, type hints, and documentation requirements are met
-4. **Write** tests alongside implementation (TDD approach)
-5. **Verify** error handling and logging are comprehensive
-6. **Use** the provided code templates and examples as guidelines
+2. **Review** the relevant section in `docs/testing-standards.md` for testing requirements
+3. **Review** the relevant section in `docs/software-architecture.md` for architectural context
+4. **Check** existing modules in `src/investment_platform/` for patterns
+5. **Ensure** code style, type hints, and documentation requirements are met
+6. **Write** tests alongside implementation (TDD approach) following testing standards
+7. **Verify** error handling and logging are comprehensive
+8. **Ensure** test coverage meets requirements (>80% overall, 100% for critical paths)
+9. **Use** the provided code templates and examples as guidelines
 
 ## When Implementing Front-End Features
 
 Before writing any front-end code:
 
 1. **Review** the relevant section in `docs/ux-standards.md`
-2. **Check** existing components in `frontend/src/components/` for patterns
-3. **Ensure** accessibility requirements are met
-4. **Test** keyboard navigation and screen reader compatibility
-5. **Verify** responsive design works on mobile, tablet, and desktop
-6. **Use** the provided implementation examples as templates
+2. **Review** the relevant section in `docs/testing-standards.md` for testing requirements
+3. **Review** the relevant section in `docs/software-architecture.md` for API integration and architecture context
+4. **Check** existing components in `frontend/src/components/` for patterns
+5. **Ensure** accessibility requirements are met
+6. **Write** tests alongside implementation following testing standards (component tests, hook tests, integration tests)
+7. **Test** keyboard navigation and screen reader compatibility
+8. **Verify** responsive design works on mobile, tablet, and desktop
+9. **Ensure** test coverage meets requirements (>80% overall, 100% for critical paths)
+10. **Use** the provided implementation examples as templates
 
 ## Code Review Checklist
 
@@ -116,8 +141,15 @@ When reviewing backend code, verify:
 - [ ] Database operations use parameterized queries
 - [ ] Database connections use context managers
 - [ ] Input validation performed
-- [ ] Tests written and passing
-- [ ] Test coverage >80%
+- [ ] Tests written and passing (unit, integration, E2E where applicable)
+- [ ] All public methods have unit tests
+- [ ] Integration tests for component interactions and API endpoints
+- [ ] Error cases and edge cases tested
+- [ ] Test coverage >80% overall (100% for critical paths)
+- [ ] Tests use pytest fixtures appropriately
+- [ ] External dependencies are mocked in unit tests
+- [ ] Database tests use test databases and clean up
+- [ ] Tests are independent and can run in any order
 - [ ] No hardcoded secrets or credentials
 - [ ] Performance considerations addressed (bulk operations, etc.)
 
@@ -135,8 +167,31 @@ When reviewing front-end code, verify:
 - [ ] Consistent with design system
 - [ ] Financial platform-specific requirements met
 - [ ] Performance considerations addressed
+- [ ] Tests written and passing (component, hook, integration, E2E where applicable)
+- [ ] All components have component tests using React Testing Library
+- [ ] All custom hooks have hook tests
+- [ ] API integration tested with MSW (Mock Service Worker)
+- [ ] Critical user flows have E2E tests
+- [ ] Accessibility is tested (keyboard navigation, ARIA)
+- [ ] Error and loading states are tested
+- [ ] Test coverage >80% overall (100% for critical paths)
+- [ ] Tests focus on user interactions, not implementation details
+- [ ] Tests are independent and can run in any order
 
 ## Reference Documents
+
+### Architecture
+- **Software Architecture**: `docs/software-architecture.md` (PRIMARY REFERENCE FOR ARCHITECTURE)
+
+**MANDATORY:** All architectural decisions, system design, and technology evaluations MUST reference the Software Architecture document located at `docs/software-architecture.md`.
+
+When making architectural decisions or evaluating technologies:
+
+1. **Always consult** the Software Architecture document (`docs/software-architecture.md`) before making architectural decisions
+2. **Ensure compliance** with architectural principles (modular design, microservices, API-first, containerization)
+3. **Follow** the service boundaries, API contracts, and integration patterns outlined in the Software Architecture
+4. **Reference** the Software Architect role document (`roles/software-architect.md`) for additional context
+5. **Use** the architecture document as the source of truth for system design and future planning
 
 ### Backend Development
 - **Development Standards**: `docs/development-standards.md` (PRIMARY REFERENCE FOR BACKEND)
@@ -147,6 +202,108 @@ When reviewing front-end code, verify:
 - **UX Standards**: `docs/ux-standards.md` (PRIMARY REFERENCE FOR FRONT-END)
 - **UX Expert Role**: `roles/user-experience-expert.md`
 - **Front-End Engineer Role**: `roles/front-end-engineer.md`
+
+### Testing
+- **Testing Standards**: `docs/testing-standards.md` (PRIMARY REFERENCE FOR TESTING)
+- **QA Tester Role**: `roles/qa-tester.md`
+
+## Role Definitions and "Act as a ..." Instructions
+
+**MANDATORY:** When a user requests you to "Act as a [Role Name]" or similar role-based instructions, you MUST:
+
+1. **Identify the Role**: Match the requested role to one of the defined roles in the `roles/` folder
+2. **Read the Role Definition**: Immediately read the corresponding role file from `roles/[role-name].md`
+3. **Adopt the Role**: Fully adopt the role's perspective, skills, knowledge areas, responsibilities, best practices, and approach to tasks as defined in the role document
+4. **Follow Role Guidelines**: Execute all tasks according to the role's defined approach, best practices, and responsibilities
+5. **Reference Role Tools**: Use the tools, technologies, and methodologies specified in the role definition
+
+### Available Roles
+
+The following roles are defined in the `roles/` folder and MUST be used when invoked:
+
+- **Classical Chartist** (`roles/classical-chartist.md`): Specializes in analyzing financial markets using traditional charting techniques, pattern recognition, and technical analysis
+- **Data Engineer** (`roles/data-engineer.md`): Designs, builds, and maintains scalable data infrastructure, data pipelines, and data quality frameworks
+- **DevOps Engineer** (`roles/devops-engineer.md`): Bridges development and operations, focusing on CI/CD pipelines, infrastructure as code, and system reliability
+- **Front End Engineer** (`roles/front-end-engineer.md`): Develops user interfaces with focus on React/TypeScript, accessibility, performance, and user experience
+- **Lead Full-Stack Engineer** (`roles/lead-full-stack-engineer.md`): Expert-level engineer (10+ years) responsible for end-to-end solutions, architecture, and technical leadership
+- **Python Developer** (`roles/python-developer.md`): Develops Python applications with focus on clean code, testing, APIs, and backend systems
+- **QA Tester** (`roles/qa-tester.md`): Creates comprehensive test suites, ensures test coverage, generates backlog items from test failures, and maintains testing standards for both backend and frontend
+- **Software Architect** (`roles/software-architect.md`): Expert-level architect (10+ years) specializing in modular architecture, microservices, APIs, containerization, and technology evaluation
+- **User Experience Expert** (`roles/user-experience-expert.md`): Designs and optimizes user experiences with focus on usability, accessibility, and user research
+
+### Role Name Mapping
+
+When a user requests a role, match it to the defined roles using these mappings:
+
+- "Act as a Python Developer" → `roles/python-developer.md`
+- "Act as a Python Dev" → `roles/python-developer.md`
+- "Act as a Backend Developer" → `roles/python-developer.md` (for Python backend work)
+- "Act as a Front End Engineer" → `roles/front-end-engineer.md`
+- "Act as a Frontend Developer" → `roles/front-end-engineer.md`
+- "Act as a Front-End Developer" → `roles/front-end-engineer.md`
+- "Act as a Full-Stack Engineer" → `roles/lead-full-stack-engineer.md`
+- "Act as a Lead Engineer" → `roles/lead-full-stack-engineer.md`
+- "Act as a Senior Engineer" → `roles/lead-full-stack-engineer.md`
+- "Act as a UX Expert" → `roles/user-experience-expert.md`
+- "Act as a UX Designer" → `roles/user-experience-expert.md`
+- "Act as a User Experience Expert" → `roles/user-experience-expert.md`
+- "Act as a Data Engineer" → `roles/data-engineer.md`
+- "Act as a DevOps Engineer" → `roles/devops-engineer.md`
+- "Act as a DevOps" → `roles/devops-engineer.md`
+- "Act as a Software Architect" → `roles/software-architect.md`
+- "Act as an Architect" → `roles/software-architect.md`
+- "Act as a System Architect" → `roles/software-architect.md`
+- "Act as an Architecture Expert" → `roles/software-architect.md`
+- "Act as a Classical Chartist" → `roles/classical-chartist.md`
+- "Act as a Technical Analyst" → `roles/classical-chartist.md`
+- "Act as a Chart Analyst" → `roles/classical-chartist.md`
+- "Act as a QA Tester" → `roles/qa-tester.md`
+- "Act as a Test Engineer" → `roles/qa-tester.md`
+- "Act as a QA Engineer" → `roles/qa-tester.md`
+- "Act as a Quality Assurance Engineer" → `roles/qa-tester.md`
+- "Act as a QA" → `roles/qa-tester.md`
+
+### Role Adoption Process
+
+When adopting a role, follow these steps:
+
+1. **Read the Complete Role File**: Read the entire role definition file to understand:
+   - Role Overview and responsibilities
+   - Key Skills (Technical and Soft Skills)
+   - Core Knowledge Areas
+   - Responsibilities
+   - Best Practices
+   - Tools & Technologies
+   - Approach to Tasks
+   - Context-Specific Notes
+
+2. **Adopt the Role's Perspective**: 
+   - Think and respond as someone with the role's expertise and experience level
+   - Use the role's terminology and methodologies
+   - Apply the role's best practices and approaches
+   - Consider the role's tools and technologies when making recommendations
+
+3. **Follow the Role's Approach**: 
+   - Use the "Approach to Tasks" section as a guide for how to tackle problems
+   - Apply the role's best practices in all recommendations and implementations
+   - Reference the role's tools and technologies when suggesting solutions
+
+4. **Maintain Role Consistency**: 
+   - Continue to act in the role throughout the conversation unless explicitly asked to change
+   - Apply the role's standards and practices consistently
+   - Reference the role definition when making decisions or recommendations
+
+### Example Usage
+
+If a user says: "Act as a Python Developer and help me implement a new API endpoint"
+
+You MUST:
+1. Read `roles/python-developer.md`
+2. Adopt the Python Developer's perspective, skills, and best practices
+3. Follow the Python Developer's approach to tasks (requirement analysis, design, TDD, etc.)
+4. Use Python Developer tools and technologies (Django/Flask, pytest, SQLAlchemy, etc.)
+5. Apply Python Developer best practices (Pythonic code, type hints, docstrings, testing, etc.)
+6. Reference the Development Standards document as specified in the role
 
 ## Project Context
 

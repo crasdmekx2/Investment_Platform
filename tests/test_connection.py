@@ -32,11 +32,8 @@ def test_connection():
         """)
         
         result = cursor.fetchone()
-        if result and result[1]:
-            print(f"✓ TimescaleDB extension is installed (version: {result[1]})")
-        else:
-            print("✗ TimescaleDB extension not found!")
-            return False
+        assert result and result[1], "TimescaleDB extension not found!"
+        print(f"✓ TimescaleDB extension is installed (version: {result[1]})")
         
         # Test database version
         cursor.execute("SELECT version();")
@@ -54,18 +51,20 @@ def test_connection():
         cursor.close()
         conn.close()
         print("\n✓ All connectivity tests passed!")
-        return True
         
     except psycopg2.OperationalError as e:
         print(f"✗ Connection failed: {e}")
         print("\nMake sure the database container is running:")
         print("  docker-compose up -d")
-        return False
+        raise
     except Exception as e:
         print(f"✗ Error: {e}")
-        return False
+        raise
 
 if __name__ == "__main__":
-    success = test_connection()
-    sys.exit(0 if success else 1)
+    try:
+        test_connection()
+        sys.exit(0)
+    except Exception:
+        sys.exit(1)
 

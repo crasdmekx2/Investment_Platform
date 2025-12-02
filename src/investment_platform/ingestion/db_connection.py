@@ -18,7 +18,7 @@ _connection_pool: Optional[pool.ThreadedConnectionPool] = None
 def get_db_config() -> dict:
     """
     Get database configuration from environment variables.
-    
+
     Returns:
         Dictionary with database connection parameters
     """
@@ -34,19 +34,19 @@ def get_db_config() -> dict:
 def initialize_connection_pool(min_conn: int = 1, max_conn: int = 10):
     """
     Initialize the database connection pool.
-    
+
     Args:
         min_conn: Minimum number of connections in the pool
         max_conn: Maximum number of connections in the pool
     """
     global _connection_pool
-    
+
     if _connection_pool is not None:
         logger.warning("Connection pool already initialized")
         return
-    
+
     config = get_db_config()
-    
+
     try:
         _connection_pool = pool.ThreadedConnectionPool(
             min_conn,
@@ -66,7 +66,7 @@ def initialize_connection_pool(min_conn: int = 1, max_conn: int = 10):
 def close_connection_pool():
     """Close the database connection pool."""
     global _connection_pool
-    
+
     if _connection_pool is not None:
         _connection_pool.closeall()
         _connection_pool = None
@@ -77,22 +77,22 @@ def close_connection_pool():
 def get_db_connection(autocommit: bool = False):
     """
     Get a database connection from the pool.
-    
+
     Args:
         autocommit: Whether to set autocommit mode
-        
+
     Yields:
         psycopg2.connection: Database connection
-        
+
     Raises:
         RuntimeError: If connection pool is not initialized
     """
     global _connection_pool
-    
+
     if _connection_pool is None:
         # Initialize pool if not already done
         initialize_connection_pool()
-    
+
     conn = None
     try:
         conn = _connection_pool.getconn()
@@ -113,26 +113,26 @@ def get_db_connection_direct(autocommit: bool = False):
     """
     Get a direct database connection (not from pool).
     Useful for one-off operations or when pool is not needed.
-    
+
     Args:
         autocommit: Whether to set autocommit mode
-        
+
     Returns:
         psycopg2.connection: Database connection
     """
     config = get_db_config()
     conn = psycopg2.connect(**config)
-    
+
     if autocommit:
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    
+
     return conn
 
 
 def test_connection() -> bool:
     """
     Test database connectivity.
-    
+
     Returns:
         True if connection successful, False otherwise
     """
@@ -145,4 +145,3 @@ def test_connection() -> bool:
     except Exception as e:
         logger.error(f"Connection test failed: {e}")
         return False
-

@@ -26,25 +26,25 @@ def setup_logging(verbose: bool = False):
 def ingest_command(args):
     """Handle ingest command."""
     setup_logging(args.verbose)
-    
+
     engine = IngestionEngine(
         incremental=not args.batch,
         on_conflict=args.on_conflict,
         use_copy=not args.no_copy,
     )
-    
+
     # Parse dates
     if args.end_date:
         end_date = datetime.fromisoformat(args.end_date)
     else:
         end_date = datetime.now()
-    
+
     if args.start_date:
         start_date = datetime.fromisoformat(args.start_date)
     else:
         # Default to 1 day ago if not specified
         start_date = end_date - timedelta(days=1)
-    
+
     # Ingest data
     result = engine.ingest(
         symbol=args.symbol,
@@ -52,7 +52,7 @@ def ingest_command(args):
         start_date=start_date,
         end_date=end_date,
     )
-    
+
     # Print results
     print(f"\nIngestion Results:")
     print(f"  Asset ID: {result['asset_id']}")
@@ -60,21 +60,21 @@ def ingest_command(args):
     print(f"  Records Collected: {result['records_collected']}")
     print(f"  Records Loaded: {result['records_loaded']}")
     print(f"  Execution Time: {result['execution_time_ms']}ms")
-    
-    if result['error_message']:
+
+    if result["error_message"]:
         print(f"  Error: {result['error_message']}")
-    
+
     # Exit with error code if failed
-    if result['status'] == 'failed':
+    if result["status"] == "failed":
         sys.exit(1)
 
 
 def schedule_command(args):
     """Handle schedule command."""
     setup_logging(args.verbose)
-    
+
     scheduler = IngestionScheduler(blocking=True)
-    
+
     # Load config if provided
     if args.config:
         scheduler.load_config(Path(args.config))
@@ -85,7 +85,7 @@ def schedule_command(args):
             hours = None
             minutes = None
             seconds = None
-            
+
             interval_str = args.interval.lower()
             if interval_str.endswith("h"):
                 hours = int(interval_str[:-1])
@@ -96,7 +96,7 @@ def schedule_command(args):
             else:
                 # Assume minutes if no suffix
                 minutes = int(interval_str)
-            
+
             scheduler.add_interval_job(
                 symbol=args.symbol,
                 asset_type=args.asset_type,
@@ -110,7 +110,7 @@ def schedule_command(args):
             if len(parts) >= 2:
                 minute = parts[0] if parts[0] != "*" else None
                 hour = parts[1] if parts[1] != "*" else None
-                
+
                 scheduler.add_cron_job(
                     symbol=args.symbol,
                     asset_type=args.asset_type,
@@ -123,7 +123,7 @@ def schedule_command(args):
         else:
             print("Error: Must specify either --interval, --cron, or --config")
             sys.exit(1)
-    
+
     # Start scheduler
     try:
         scheduler.start()
@@ -138,9 +138,9 @@ def create_parser():
         description="Investment Platform Data Ingestion CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    
+
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
-    
+
     # Ingest command
     ingest_parser = subparsers.add_parser("ingest", help="Ingest data for an asset")
     ingest_parser.add_argument(
@@ -177,12 +177,13 @@ def create_parser():
         help="Disable PostgreSQL COPY for bulk inserts",
     )
     ingest_parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Enable verbose logging",
     )
     ingest_parser.set_defaults(func=ingest_command)
-    
+
     # Schedule command
     schedule_parser = subparsers.add_parser(
         "schedule",
@@ -210,12 +211,13 @@ def create_parser():
         help="Cron expression for scheduled runs (e.g., '0 9 * * *' for daily at 9 AM)",
     )
     schedule_parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Enable verbose logging",
     )
     schedule_parser.set_defaults(func=schedule_command)
-    
+
     return parser
 
 
@@ -223,14 +225,13 @@ def main():
     """Main CLI entry point."""
     parser = create_parser()
     args = parser.parse_args()
-    
+
     if not args.command:
         parser.print_help()
         sys.exit(1)
-    
+
     args.func(args)
 
 
 if __name__ == "__main__":
     main()
-

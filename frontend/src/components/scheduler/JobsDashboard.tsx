@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
+import { StatusBadge } from '@/components/common/StatusBadge';
 import { JobAnalytics } from '@/components/scheduler/JobAnalytics';
 import { useSchedulerStore } from '@/store/slices/schedulerSlice';
 import { useCollectionStore } from '@/store/slices/collectionSlice';
@@ -92,17 +93,17 @@ export function JobsDashboard() {
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded ${
+                    <StatusBadge
+                      status={
                         log.status === 'success'
-                          ? 'bg-success-100 text-success-800'
+                          ? 'success'
                           : log.status === 'failed'
-                          ? 'bg-danger-100 text-danger-800'
-                          : 'bg-warning-100 text-warning-800'
-                      }`}
+                          ? 'failed'
+                          : 'warning'
+                      }
                     >
                       {log.status}
-                    </span>
+                    </StatusBadge>
                     <span className="text-sm text-gray-600">
                       {log.records_collected} records
                     </span>

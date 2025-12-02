@@ -52,7 +52,10 @@ async def lifespan(app: FastAPI):
             # Store in app state for router access
             app.state.scheduler = scheduler_instance
         except Exception as e:
-            logger.error(f"Failed to initialize scheduler: {e}", exc_info=True)
+            logger.error(
+                f"Failed to initialize scheduler: {e}",
+                exc_info=True
+            )
             # Continue without scheduler if initialization fails
             app.state.scheduler = None
     else:
@@ -73,7 +76,10 @@ async def lifespan(app: FastAPI):
             scheduler_instance.shutdown()
             logger.info("Scheduler shut down")
         except Exception as e:
-            logger.error(f"Error shutting down scheduler: {e}", exc_info=True)
+            logger.error(
+                f"Error shutting down scheduler: {e}",
+                exc_info=True
+            )
     
     close_connection_pool()
     logger.info("API server shut down")

@@ -5,6 +5,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg';
   children: ReactNode;
   isLoading?: boolean;
+  'aria-label'?: string;
 }
 
 export function Button({
@@ -14,24 +15,28 @@ export function Button({
   isLoading = false,
   disabled,
   className = '',
+  'aria-label': ariaLabel,
   ...props
 }: ButtonProps) {
-  const baseClasses = 'btn inline-flex items-center justify-center';
+  const baseClasses = 'btn inline-flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   const variantClasses = {
     primary: 'btn-primary',
     secondary: 'btn-secondary',
     danger: 'btn-danger',
   };
   const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg',
+    sm: 'px-3 py-1.5 text-sm min-h-[44px] min-w-[44px]',
+    md: 'px-4 py-2 text-base min-h-[44px] min-w-[44px]',
+    lg: 'px-6 py-3 text-lg min-h-[44px] min-w-[44px]',
   };
 
   return (
     <button
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       disabled={disabled || isLoading}
+      aria-busy={isLoading}
+      aria-label={ariaLabel}
+      aria-disabled={disabled || isLoading}
       {...props}
     >
       {isLoading ? (
@@ -41,6 +46,7 @@ export function Button({
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <circle
               className="opacity-25"
@@ -56,6 +62,7 @@ export function Button({
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
+          <span className="sr-only">Loading</span>
           Loading...
         </>
       ) : (

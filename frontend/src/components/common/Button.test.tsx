@@ -30,7 +30,11 @@ describe('Button', () => {
 
   it('shows loading state', () => {
     render(<Button isLoading>Click me</Button>);
-    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    // Check for the visible loading text (not the sr-only span)
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    // Check that button is disabled when loading
+    expect(screen.getByRole('button')).toBeDisabled();
+    expect(screen.getByRole('button')).toHaveAttribute('aria-busy', 'true');
   });
 
   it('applies variant classes', () => {

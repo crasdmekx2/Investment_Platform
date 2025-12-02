@@ -35,7 +35,8 @@ export function ErrorMessage({ title = 'Error', message, onRetry, actions }: Err
               {onRetry && (
                 <button
                   onClick={onRetry}
-                  className="text-sm font-medium text-danger-800 hover:text-danger-900 underline"
+                  className="text-sm font-medium text-danger-800 hover:text-danger-900 underline focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-2 rounded min-h-[44px] min-w-[44px] px-2"
+                  aria-label="Retry operation"
                 >
                   Retry
                 </button>

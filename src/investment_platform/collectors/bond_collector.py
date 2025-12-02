@@ -71,8 +71,7 @@ class BondCollector(BaseDataCollector):
             self.client = Fred(api_key=self.api_key)
         except ImportError:
             raise DataCollectionError(
-                "fredapi library is not installed. "
-                "Install it with: pip install fredapi"
+                "fredapi library is not installed. " "Install it with: pip install fredapi"
             )
 
     def collect_historical_data(
@@ -107,9 +106,7 @@ class BondCollector(BaseDataCollector):
             # Validate dates
             start_dt, end_dt = self._validate_dates(start_date, end_date)
 
-            self.logger.info(
-                f"Collecting bond data for {symbol} from {start_dt} to {end_dt}"
-            )
+            self.logger.info(f"Collecting bond data for {symbol} from {start_dt} to {end_dt}")
 
             # Map symbol to FRED series ID
             series_id = self.SERIES_MAPPING.get(symbol.upper(), symbol.upper())
@@ -122,9 +119,7 @@ class BondCollector(BaseDataCollector):
             except Exception as e:
                 # If series ID not found, try the symbol as-is
                 if series_id != symbol.upper():
-                    self.logger.warning(
-                        f"Series {series_id} not found, trying {symbol.upper()}"
-                    )
+                    self.logger.warning(f"Series {series_id} not found, trying {symbol.upper()}")
                     series = self.client.get_series(
                         symbol.upper(), observation_start=start_dt, observation_end=end_dt
                     )
@@ -144,7 +139,7 @@ class BondCollector(BaseDataCollector):
             initial_count = len(df)
             df = df.dropna(subset=["rate"])
             dropped_count = initial_count - len(df)
-            
+
             if dropped_count > 0:
                 self.logger.warning(
                     f"Dropped {dropped_count} records with null/NaN rate values "
@@ -207,9 +202,7 @@ class BondCollector(BaseDataCollector):
                 "TIPS": {"type": "TIPS", "name": "10-Year Treasury Inflation-Protected Security"},
             }
 
-            bond_info = bond_info_mapping.get(
-                symbol.upper(), {"type": symbol, "name": symbol}
-            )
+            bond_info = bond_info_mapping.get(symbol.upper(), {"type": symbol, "name": symbol})
 
             # Extract relevant information from FRED
             asset_info = {
@@ -267,13 +260,13 @@ class BondCollector(BaseDataCollector):
             # Common Treasury yield curve series IDs
             yield_curve_series = {
                 "1M": "DGS1MO",  # 1-Month
-                "3M": "TB3MS",   # 3-Month
+                "3M": "TB3MS",  # 3-Month
                 "6M": "DGS6MO",  # 6-Month
-                "1Y": "DGS1",    # 1-Year
-                "2Y": "DGS2",    # 2-Year
-                "3Y": "DGS3",    # 3-Year
-                "5Y": "DGS5",    # 5-Year
-                "7Y": "DGS7",    # 7-Year
+                "1Y": "DGS1",  # 1-Year
+                "2Y": "DGS2",  # 2-Year
+                "3Y": "DGS3",  # 3-Year
+                "5Y": "DGS5",  # 5-Year
+                "7Y": "DGS7",  # 7-Year
                 "10Y": "DGS10",  # 10-Year
                 "20Y": "DGS20",  # 20-Year
                 "30Y": "DGS30",  # 30-Year
@@ -327,4 +320,3 @@ class BondCollector(BaseDataCollector):
         except Exception as e:
             self._handle_error(e, "get_yield_curve")
             raise
-

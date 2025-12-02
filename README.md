@@ -148,9 +148,21 @@ python tests/test_connection.py
 
 ### Running Tests
 
-Run all tests:
+**Local Testing:**
+
+Run all backend tests:
 ```bash
 pytest
+```
+
+Run tests with coverage:
+```bash
+pytest --cov=src/investment_platform --cov-report=html
+```
+
+Run specific test file:
+```bash
+pytest tests/test_api_routers_scheduler.py -v
 ```
 
 Run database tests only:
@@ -164,10 +176,57 @@ pytest tests/test_sample_data.py
 pytest tests/test_data_quality.py
 ```
 
-Run tests with coverage:
+**Frontend Testing:**
+
 ```bash
-pytest --cov=investment_platform --cov-report=html
+cd frontend
+npm test              # Run all tests
+npm run test:coverage # Run with coverage
+npm run test:e2e      # Run E2E tests
 ```
+
+**CI/CD:**
+
+Tests run automatically on:
+- Every push to `main` or `develop` branches
+- Every pull request to `main` or `develop` branches
+
+The CI/CD pipeline includes:
+- ✅ Backend tests with coverage
+- ✅ Frontend tests with coverage
+- ✅ Lint and format checks
+- ✅ E2E tests (on main branch and PRs)
+
+Test results and coverage reports are available in the GitHub Actions workflow.
+
+**Handling Test Failures:**
+
+When tests fail in CI/CD:
+1. **GitHub Issues are automatically created** for each test failure (on push to main/develop)
+2. Check the GitHub Issues tab to see all test failures
+3. Check the GitHub Actions workflow for detailed failure logs
+4. Reproduce the failure locally (see [Test Failure Workflow](docs/TEST_FAILURE_WORKFLOW.md))
+5. Fix the issue and verify locally
+6. Push the fix and verify CI/CD passes
+7. The GitHub issue will be automatically closed when the test passes
+
+**Automatic Issue Creation:**
+- Issues are created automatically when tests fail on push to `main` or `develop`
+- Issues are not created for pull requests (to avoid spam)
+- Issues include severity classification (Critical/High/Medium)
+- Issues are labeled with `test-failure`, `ci/cd`, and severity labels
+- Duplicate issues are prevented (checks for existing open issues)
+
+**Fixing Test Failures:**
+
+**For a single test failure:**
+- Use `@prompts/handle-test-failure.md` to fix one specific test failure
+
+**For multiple test failures:**
+- Use `@prompts/fix-all-test-failures.md` to systematically fix all test failures
+- This helper will list, prioritize, and guide you through fixing all issues
+
+See [Test Failure Workflow](docs/TEST_FAILURE_WORKFLOW.md) for complete details.
 
 ### Database Testing
 

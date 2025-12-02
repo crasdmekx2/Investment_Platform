@@ -3,9 +3,10 @@ import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
+import { StatusBadge } from '@/components/common/StatusBadge';
 import { ScheduleVisualization } from '@/components/scheduler/ScheduleVisualization';
 import { useSchedulerStore } from '@/store/slices/schedulerSlice';
-import { formatTrigger, getStatusColor } from '@/lib/utils/scheduler';
+import { formatTrigger } from '@/lib/utils/scheduler';
 import type { JobStatus, AssetType } from '@/types/scheduler';
 
 export function JobsList() {
@@ -78,7 +79,8 @@ export function JobsList() {
               id="status-filter"
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value as JobStatus | '')}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
+              aria-label="Filter jobs by status"
             >
               <option value="">All</option>
               <option value="active">Active</option>
@@ -96,7 +98,8 @@ export function JobsList() {
               id="asset-type-filter"
               value={selectedAssetType}
               onChange={(e) => setSelectedAssetType(e.target.value as AssetType | '')}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
+              aria-label="Filter jobs by asset type"
             >
               <option value="">All</option>
               <option value="stock">Stock</option>
@@ -119,25 +122,25 @@ export function JobsList() {
           <p className="text-gray-500">No jobs found</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200" aria-label="Scheduled jobs table">
               <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Symbol
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Asset Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Schedule
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Next Run
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -155,9 +158,21 @@ export function JobsList() {
                       {formatTrigger(job.trigger_config)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusColor(job.status)}`}>
+                      <StatusBadge
+                        status={
+                          job.status === 'active'
+                            ? 'active'
+                            : job.status === 'paused'
+                            ? 'paused'
+                            : job.status === 'failed'
+                            ? 'failed'
+                            : job.status === 'completed'
+                            ? 'completed'
+                            : 'pending'
+                        }
+                      >
                         {job.status}
-                      </span>
+                      </StatusBadge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {job.next_run_at ? new Date(job.next_run_at).toLocaleString() : 'N/A'}

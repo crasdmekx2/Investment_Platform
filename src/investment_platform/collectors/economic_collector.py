@@ -60,8 +60,7 @@ class EconomicCollector(BaseDataCollector):
             self.client = Fred(api_key=self.api_key)
         except ImportError:
             raise DataCollectionError(
-                "fredapi library is not installed. "
-                "Install it with: pip install fredapi"
+                "fredapi library is not installed. " "Install it with: pip install fredapi"
             )
 
     def collect_historical_data(
@@ -91,9 +90,7 @@ class EconomicCollector(BaseDataCollector):
             # Validate dates
             start_dt, end_dt = self._validate_dates(start_date, end_date)
 
-            self.logger.info(
-                f"Collecting economic data for {symbol} from {start_dt} to {end_dt}"
-            )
+            self.logger.info(f"Collecting economic data for {symbol} from {start_dt} to {end_dt}")
 
             # Fetch data from FRED
             series = self.client.get_series(
@@ -119,7 +116,7 @@ class EconomicCollector(BaseDataCollector):
             initial_count = len(df)
             df = df.dropna(subset=[symbol])
             dropped_count = initial_count - len(df)
-            
+
             if dropped_count > 0:
                 self.logger.warning(
                     f"Dropped {dropped_count} records with null/NaN values "
@@ -166,7 +163,7 @@ class EconomicCollector(BaseDataCollector):
             # Check if info is valid (handle Series, dict, or None)
             if info is None:
                 raise APIError(f"No information found for {symbol}")
-            
+
             # If info is a pandas Series, check if it's empty
             if isinstance(info, pd.Series):
                 if info.empty:
@@ -256,4 +253,3 @@ class EconomicCollector(BaseDataCollector):
         except Exception as e:
             self._handle_error(e, f"search_series for {search_text}")
             raise
-

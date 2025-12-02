@@ -106,13 +106,16 @@ export function AssetSelector({ assetType, selected, onSelect, onBack, onNext, b
               onSelect(selectedArray[0] || '');
             }
           }}
-          className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-          aria-label="Enable bulk selection mode"
+          className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+          aria-describedby="bulk-mode-help"
         />
         <label htmlFor="bulk-mode" className="text-sm font-medium text-gray-700 cursor-pointer min-h-[44px] flex items-center">
           Enable bulk selection (select multiple assets)
         </label>
       </div>
+      <p id="bulk-mode-help" className="sr-only">
+        When enabled, you can select multiple assets to create jobs for all of them at once
+      </p>
 
       <div>
         <label htmlFor="asset-search" className="block text-sm font-medium text-gray-700 mb-2">
@@ -142,19 +145,21 @@ export function AssetSelector({ assetType, selected, onSelect, onBack, onNext, b
                 className={`
                   w-full p-3 rounded-md text-left transition-colors min-h-[44px]
                   flex items-center space-x-3
+                  focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
                   ${isSelected(option.symbol)
                     ? 'bg-primary-50 border-2 border-primary-500'
                     : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
                   }
                 `}
                 aria-pressed={isSelected(option.symbol)}
+                aria-label={`${isSelected(option.symbol) ? 'Deselect' : 'Select'} ${option.symbol} - ${option.name}`}
               >
                 {isBulkMode && (
                   <input
                     type="checkbox"
                     checked={isSelected(option.symbol)}
                     onChange={() => handleSelect(option.symbol)}
-                    className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                     onClick={(e) => e.stopPropagation()}
                     aria-label={`Select ${option.symbol}`}
                   />
@@ -184,10 +189,10 @@ export function AssetSelector({ assetType, selected, onSelect, onBack, onNext, b
                   {symbol}
                   <button
                     onClick={() => handleSelect(symbol)}
-                    className="ml-2 text-primary-200 hover:text-white"
+                    className="ml-2 text-primary-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary-600 rounded min-h-[44px] min-w-[44px] flex items-center justify-center"
                     aria-label={`Remove ${symbol}`}
                   >
-                    ×
+                    <span aria-hidden="true">×</span>
                   </button>
                 </span>
               ))}

@@ -90,9 +90,13 @@ export function DependencySelector({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search by symbol or job ID..."
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+          className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
           aria-label="Search for jobs"
+          aria-describedby="dependency-search-help"
         />
+        <p id="dependency-search-help" className="sr-only">
+          Search for jobs to add as dependencies
+        </p>
       </div>
 
       {loading && <LoadingSpinner />}
@@ -117,7 +121,7 @@ export function DependencySelector({
                     type="checkbox"
                     checked={isSelected}
                     onChange={() => handleToggleDependency(job.job_id)}
-                    className="mt-1 w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    className="mt-1 w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                     aria-label={`Select ${job.symbol} as dependency`}
                   />
                   <div className="flex-1">
@@ -138,7 +142,7 @@ export function DependencySelector({
                               e.target.value as 'success' | 'complete' | 'any'
                             )
                           }
-                          className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[36px]"
+                          className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
                           aria-label={`Condition for ${job.symbol} dependency`}
                         >
                           <option value="success">Must succeed</option>
@@ -171,10 +175,10 @@ export function DependencySelector({
                   {job?.symbol || dep.depends_on_job_id} ({dep.condition})
                   <button
                     onClick={() => handleToggleDependency(dep.depends_on_job_id)}
-                    className="ml-2 text-primary-200 hover:text-white"
+                    className="ml-2 text-primary-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary-600 rounded min-h-[44px] min-w-[44px] flex items-center justify-center"
                     aria-label={`Remove ${job?.symbol || dep.depends_on_job_id} dependency`}
                   >
-                    ×
+                    <span aria-hidden="true">×</span>
                   </button>
                 </span>
               );

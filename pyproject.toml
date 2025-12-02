@@ -68,6 +68,10 @@ addopts = [
     "--strict-markers",
     "--verbose",
 ]
+# Ignore script files that are not pytest tests
+norecursedirs = [".git", ".venv", "venv", "__pycache__", "*.egg-info"]
+# Ignore specific test files that are scripts
+ignore = ["tests/test_collectors.py", "tests/test_connection.py"]
 
 [tool.mypy]
 python_version = "3.8"

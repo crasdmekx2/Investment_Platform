@@ -49,7 +49,8 @@ export function CollectionParamsForm({
             id="granularity"
             value={(collectorKwargs.granularity as string) || 'ONE_DAY'}
             onChange={(e) => handleParamChange('granularity', e.target.value)}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
+            aria-describedby="granularity-help"
           >
             <option value="ONE_MINUTE">1 Minute</option>
             <option value="FIVE_MINUTE">5 Minutes</option>
@@ -70,7 +71,8 @@ export function CollectionParamsForm({
             id="interval"
             value={(collectorKwargs.interval as string) || '1d'}
             onChange={(e) => handleParamChange('interval', e.target.value)}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
+            aria-describedby="interval-help"
           >
             <option value="1m">1 Minute</option>
             <option value="5m">5 Minutes</option>
@@ -90,13 +92,14 @@ export function CollectionParamsForm({
             type="checkbox"
             checked={incremental}
             onChange={(e) => onIncrementalChange(e.target.checked)}
-            className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+            className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            aria-describedby="incremental-help"
           />
           <span className="text-sm font-medium text-gray-700">
             Incremental mode (only fetch missing data)
           </span>
         </label>
-        <p className="mt-1 text-sm text-gray-500">
+        <p id="incremental-help" className="mt-1 text-sm text-gray-500">
           When enabled, only missing data will be collected. When disabled, full history will be downloaded.
         </p>
       </div>
@@ -113,8 +116,12 @@ export function CollectionParamsForm({
               type="date"
               value={startDate}
               onChange={(e) => onStartDateChange(e.target.value)}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
+              aria-describedby="start-date-help"
             />
+            <p id="start-date-help" className="sr-only">
+              Start date for data collection
+            </p>
           </div>
           <div>
             <label htmlFor="end-date" className="block text-sm font-medium text-gray-700 mb-2">
@@ -125,8 +132,12 @@ export function CollectionParamsForm({
               type="date"
               value={endDate}
               onChange={(e) => onEndDateChange(e.target.value)}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 min-h-[44px]"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 min-h-[44px]"
+              aria-describedby="end-date-help"
             />
+            <p id="end-date-help" className="sr-only">
+              End date for data collection
+            </p>
           </div>
         </div>
       )}

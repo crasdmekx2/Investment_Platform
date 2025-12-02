@@ -184,11 +184,9 @@ class BaseDataCollector(ABC):
         # Get shared rate limiter for this collector class
         collector_class_name = self.__class__.__name__
         limiter = SharedRateLimiter.get_limiter(
-            collector_class_name,
-            calls=self.rate_limit_calls,
-            period=self.rate_limit_period
+            collector_class_name, calls=self.rate_limit_calls, period=self.rate_limit_period
         )
-        
+
         # Apply the shared rate limiter decorator
         return limiter(func)
 
@@ -301,9 +299,7 @@ class BaseDataCollector(ABC):
                 end_dt = end_date
 
             if start_dt > end_dt:
-                raise ValidationError(
-                    f"Start date ({start_dt}) must be before end date ({end_dt})"
-                )
+                raise ValidationError(f"Start date ({start_dt}) must be before end date ({end_dt})")
 
             return start_dt, end_dt
         except (ValueError, AttributeError) as e:
@@ -339,9 +335,7 @@ class BaseDataCollector(ABC):
         if required_columns:
             missing_columns = set(required_columns) - set(df.columns)
             if missing_columns:
-                raise ValidationError(
-                    f"Missing required columns: {missing_columns}"
-                )
+                raise ValidationError(f"Missing required columns: {missing_columns}")
 
         # Check for all-NaN rows
         if df.isna().all(axis=1).any():
@@ -386,11 +380,11 @@ class BaseDataCollector(ABC):
         """
         try:
             import yfinance as yf
+
             return yf
         except ImportError:
             raise DataCollectionError(
-                "yfinance library is not installed. "
-                "Install it with: pip install yfinance"
+                "yfinance library is not installed. " "Install it with: pip install yfinance"
             )
 
     def _fetch_yfinance_history(
@@ -502,4 +496,3 @@ class BaseDataCollector(ABC):
                 )
 
         return df
-
