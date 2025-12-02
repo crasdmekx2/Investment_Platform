@@ -221,55 +221,44 @@ jobs:
                 }
                 
                 // Create issue title
-                const title = `[${severity}] Test Failure: ${testIdentifier}`;
+                const title = '[' + severity + '] Test Failure: ' + testIdentifier;
                 
-                // Create issue body
+                // Create issue body - using string concatenation to avoid YAML parsing issues
                 const codeBlock = String.fromCharCode(96, 96, 96);
-                const body = `## Description
-
-Test failure detected in CI/CD pipeline. This test is failing and needs investigation.
-
-## Test File Reference
-- **File:** \\\`${testFile}\\\`
-- **Test:** \\\`${testIdentifier}\\\`
-- **Test Class:** \\\`${testClass}\\\`
-- **Test Name:** \\\`${testName}\\\`
-
-## Steps to Reproduce
-1. Run the test locally: \\\`pytest ${testFile}::${testClass}::${testName} -v\\\`
-2. Or check the CI/CD logs for detailed output
-
-## Expected Behavior
-The test should pass successfully.
-
-## Actual Behavior
-The test is failing with the following error:
-
-## Error Message
-${codeBlock}
-${errorType}: ${errorMessage.substring(0, 1000)}
-${codeBlock}
-
-## Severity
-**${severity}** - ${severity === 'Critical' ? 'Blocks critical functionality' : severity === 'High' ? 'Blocks important functionality' : 'Affects non-critical functionality'}
-
-## Additional Context
-- **CI/CD Run:** ${workflowRunUrl}
-- **Commit:** ${commitUrl}
-- **Branch:** ${process.env.GITHUB_REF}
-- **Workflow:** ${process.env.GITHUB_WORKFLOW}
-
-## Recommended Actions
-1. Reproduce the failure locally
-2. Investigate the root cause
-3. Fix the issue
-4. Verify the fix with the test
-5. Update this issue when resolved
-
-## Related Issues
-- Related to test failures in CI/CD
-- See [Test Failure Workflow](https://github.com/${owner}/${repo}/blob/main/docs/TEST_FAILURE_WORKFLOW.md) for handling process
-`;
+                const body = '## Description\n\n' +
+                  'Test failure detected in CI/CD pipeline. This test is failing and needs investigation.\n\n' +
+                  '## Test File Reference\n' +
+                  '- **File:** `' + testFile + '`\n' +
+                  '- **Test:** `' + testIdentifier + '`\n' +
+                  '- **Test Class:** `' + testClass + '`\n' +
+                  '- **Test Name:** `' + testName + '`\n\n' +
+                  '## Steps to Reproduce\n' +
+                  '1. Run the test locally: `pytest ' + testFile + '::' + testClass + '::' + testName + ' -v`\n' +
+                  '2. Or check the CI/CD logs for detailed output\n\n' +
+                  '## Expected Behavior\n' +
+                  'The test should pass successfully.\n\n' +
+                  '## Actual Behavior\n' +
+                  'The test is failing with the following error:\n\n' +
+                  '## Error Message\n' +
+                  codeBlock + '\n' +
+                  errorType + ': ' + errorMessage.substring(0, 1000) + '\n' +
+                  codeBlock + '\n\n' +
+                  '## Severity\n' +
+                  '**' + severity + '** - ' + (severity === 'Critical' ? 'Blocks critical functionality' : severity === 'High' ? 'Blocks important functionality' : 'Affects non-critical functionality') + '\n\n' +
+                  '## Additional Context\n' +
+                  '- **CI/CD Run:** ' + workflowRunUrl + '\n' +
+                  '- **Commit:** ' + commitUrl + '\n' +
+                  '- **Branch:** ' + process.env.GITHUB_REF + '\n' +
+                  '- **Workflow:** ' + process.env.GITHUB_WORKFLOW + '\n\n' +
+                  '## Recommended Actions\n' +
+                  '1. Reproduce the failure locally\n' +
+                  '2. Investigate the root cause\n' +
+                  '3. Fix the issue\n' +
+                  '4. Verify the fix with the test\n' +
+                  '5. Update this issue when resolved\n\n' +
+                  '## Related Issues\n' +
+                  '- Related to test failures in CI/CD\n' +
+                  '- See [Test Failure Workflow](https://github.com/' + owner + '/' + repo + '/blob/main/docs/TEST_FAILURE_WORKFLOW.md) for handling process';
                 
                 try {
                   const { data: issue } = await octokit.rest.issues.create({
@@ -470,55 +459,44 @@ ${codeBlock}
                 }
                 
                 // Create issue title
-                const title = `[${severity}] Test Failure: ${testIdentifier}`;
+                const title = '[' + severity + '] Test Failure: ' + testIdentifier;
                 
-                // Create issue body
+                // Create issue body - using string concatenation to avoid YAML parsing issues
                 const codeBlock = String.fromCharCode(96, 96, 96);
-                const body = `## Description
-
-Test failure detected in CI/CD pipeline. This test is failing and needs investigation.
-
-## Test File Reference
-- **File:** \\\`${testFile}\\\`
-- **Test:** \\\`${testIdentifier}\\\`
-- **Test Class:** \\\`${testClass}\\\`
-- **Test Name:** \\\`${testName}\\\`
-
-## Steps to Reproduce
-1. Run the test locally: \\\`npm test -- ${testFile} -t "${testName}"\\\`
-2. Or check the CI/CD logs for detailed output
-
-## Expected Behavior
-The test should pass successfully.
-
-## Actual Behavior
-The test is failing with the following error:
-
-## Error Message
-${codeBlock}
-${errorType}: ${errorMessage.substring(0, 1000)}
-${codeBlock}
-
-## Severity
-**${severity}** - ${severity === 'Critical' ? 'Blocks critical functionality' : severity === 'High' ? 'Blocks important functionality' : 'Affects non-critical functionality'}
-
-## Additional Context
-- **CI/CD Run:** ${workflowRunUrl}
-- **Commit:** ${commitUrl}
-- **Branch:** ${process.env.GITHUB_REF}
-- **Workflow:** ${process.env.GITHUB_WORKFLOW}
-
-## Recommended Actions
-1. Reproduce the failure locally
-2. Investigate the root cause
-3. Fix the issue
-4. Verify the fix with the test
-5. Update this issue when resolved
-
-## Related Issues
-- Related to test failures in CI/CD
-- See [Test Failure Workflow](https://github.com/${owner}/${repo}/blob/main/docs/TEST_FAILURE_WORKFLOW.md) for handling process
-`;
+                const body = '## Description\n\n' +
+                  'Test failure detected in CI/CD pipeline. This test is failing and needs investigation.\n\n' +
+                  '## Test File Reference\n' +
+                  '- **File:** `' + testFile + '`\n' +
+                  '- **Test:** `' + testIdentifier + '`\n' +
+                  '- **Test Class:** `' + testClass + '`\n' +
+                  '- **Test Name:** `' + testName + '`\n\n' +
+                  '## Steps to Reproduce\n' +
+                  '1. Run the test locally: `npm test -- ' + testFile + ' -t "' + testName + '"`\n' +
+                  '2. Or check the CI/CD logs for detailed output\n\n' +
+                  '## Expected Behavior\n' +
+                  'The test should pass successfully.\n\n' +
+                  '## Actual Behavior\n' +
+                  'The test is failing with the following error:\n\n' +
+                  '## Error Message\n' +
+                  codeBlock + '\n' +
+                  errorType + ': ' + errorMessage.substring(0, 1000) + '\n' +
+                  codeBlock + '\n\n' +
+                  '## Severity\n' +
+                  '**' + severity + '** - ' + (severity === 'Critical' ? 'Blocks critical functionality' : severity === 'High' ? 'Blocks important functionality' : 'Affects non-critical functionality') + '\n\n' +
+                  '## Additional Context\n' +
+                  '- **CI/CD Run:** ' + workflowRunUrl + '\n' +
+                  '- **Commit:** ' + commitUrl + '\n' +
+                  '- **Branch:** ' + process.env.GITHUB_REF + '\n' +
+                  '- **Workflow:** ' + process.env.GITHUB_WORKFLOW + '\n\n' +
+                  '## Recommended Actions\n' +
+                  '1. Reproduce the failure locally\n' +
+                  '2. Investigate the root cause\n' +
+                  '3. Fix the issue\n' +
+                  '4. Verify the fix with the test\n' +
+                  '5. Update this issue when resolved\n\n' +
+                  '## Related Issues\n' +
+                  '- Related to test failures in CI/CD\n' +
+                  '- See [Test Failure Workflow](https://github.com/' + owner + '/' + repo + '/blob/main/docs/TEST_FAILURE_WORKFLOW.md) for handling process';
                 
                 try {
                   const { data: issue } = await octokit.rest.issues.create({
