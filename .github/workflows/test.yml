@@ -224,18 +224,20 @@ jobs:
                 const title = `[${severity}] Test Failure: ${testIdentifier}`;
                 
                 // Create issue body
+                const codeBlockStart = '```';
+                const codeBlockEnd = '```';
                 const body = `## Description
-                
+
 Test failure detected in CI/CD pipeline. This test is failing and needs investigation.
 
 ## Test File Reference
-- **File:** \`${testFile}\`
-- **Test:** \`${testIdentifier}\`
-- **Test Class:** \`${testClass}\`
-- **Test Name:** \`${testName}\`
+- **File:** \\\`${testFile}\\\`
+- **Test:** \\\`${testIdentifier}\\\`
+- **Test Class:** \\\`${testClass}\\\`
+- **Test Name:** \\\`${testName}\\\`
 
 ## Steps to Reproduce
-1. Run the test locally: \`pytest ${testFile}::${testClass}::${testName} -v\`
+1. Run the test locally: \\\`pytest ${testFile}::${testClass}::${testName} -v\\\`
 2. Or check the CI/CD logs for detailed output
 
 ## Expected Behavior
@@ -245,9 +247,9 @@ The test should pass successfully.
 The test is failing with the following error:
 
 ## Error Message
-\`\`\`
+${codeBlockStart}
 ${errorType}: ${errorMessage.substring(0, 1000)}
-\`\`\`
+${codeBlockEnd}
 
 ## Severity
 **${severity}** - ${severity === 'Critical' ? 'Blocks critical functionality' : severity === 'High' ? 'Blocks important functionality' : 'Affects non-critical functionality'}
@@ -472,18 +474,20 @@ ${errorType}: ${errorMessage.substring(0, 1000)}
                 const title = `[${severity}] Test Failure: ${testIdentifier}`;
                 
                 // Create issue body
+                const codeBlockStart = '```';
+                const codeBlockEnd = '```';
                 const body = `## Description
-                
+
 Test failure detected in CI/CD pipeline. This test is failing and needs investigation.
 
 ## Test File Reference
-- **File:** \`${testFile}\`
-- **Test:** \`${testIdentifier}\`
-- **Test Class:** \`${testClass}\`
-- **Test Name:** \`${testName}\`
+- **File:** \\\`${testFile}\\\`
+- **Test:** \\\`${testIdentifier}\\\`
+- **Test Class:** \\\`${testClass}\\\`
+- **Test Name:** \\\`${testName}\\\`
 
 ## Steps to Reproduce
-1. Run the test locally: \`npm test -- ${testFile} -t "${testName}"\`
+1. Run the test locally: \\\`npm test -- ${testFile} -t "${testName}"\\\`
 2. Or check the CI/CD logs for detailed output
 
 ## Expected Behavior
@@ -493,9 +497,9 @@ The test should pass successfully.
 The test is failing with the following error:
 
 ## Error Message
-\`\`\`
+${codeBlockStart}
 ${errorType}: ${errorMessage.substring(0, 1000)}
-\`\`\`
+${codeBlockEnd}
 
 ## Severity
 **${severity}** - ${severity === 'Critical' ? 'Blocks critical functionality' : severity === 'High' ? 'Blocks important functionality' : 'Affects non-critical functionality'}
