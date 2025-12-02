@@ -10,17 +10,17 @@ from datetime import datetime, timedelta
 def execute_query(cursor, query: str, params: Optional[Tuple] = None) -> List[Dict[str, Any]]:
     """
     Execute a query and return results as a list of dictionaries.
-    
+
     Args:
         cursor: Database cursor
         query: SQL query string
         params: Optional query parameters
-        
+
     Returns:
         List of dictionaries representing rows
     """
     cursor.execute(query, params)
-    
+
     if cursor.description:
         columns = [desc[0] for desc in cursor.description]
         rows = cursor.fetchall()
@@ -29,15 +29,15 @@ def execute_query(cursor, query: str, params: Optional[Tuple] = None) -> List[Di
         return []
 
 
-def table_exists(cursor, table_name: str, schema: str = 'public') -> bool:
+def table_exists(cursor, table_name: str, schema: str = "public") -> bool:
     """
     Check if a table exists.
-    
+
     Args:
         cursor: Database cursor
         table_name: Name of the table
         schema: Schema name (default: public)
-        
+
     Returns:
         True if table exists, False otherwise
     """
@@ -52,15 +52,15 @@ def table_exists(cursor, table_name: str, schema: str = 'public') -> bool:
     return cursor.fetchone()[0]
 
 
-def index_exists(cursor, index_name: str, schema: str = 'public') -> bool:
+def index_exists(cursor, index_name: str, schema: str = "public") -> bool:
     """
     Check if an index exists.
-    
+
     Args:
         cursor: Database cursor
         index_name: Name of the index
         schema: Schema name (default: public)
-        
+
     Returns:
         True if index exists, False otherwise
     """
@@ -75,15 +75,15 @@ def index_exists(cursor, index_name: str, schema: str = 'public') -> bool:
     return cursor.fetchone()[0]
 
 
-def function_exists(cursor, function_name: str, schema: str = 'public') -> bool:
+def function_exists(cursor, function_name: str, schema: str = "public") -> bool:
     """
     Check if a function exists.
-    
+
     Args:
         cursor: Database cursor
         function_name: Name of the function
         schema: Schema name (default: public)
-        
+
     Returns:
         True if function exists, False otherwise
     """
@@ -99,16 +99,16 @@ def function_exists(cursor, function_name: str, schema: str = 'public') -> bool:
     return cursor.fetchone()[0]
 
 
-def trigger_exists(cursor, trigger_name: str, table_name: str, schema: str = 'public') -> bool:
+def trigger_exists(cursor, trigger_name: str, table_name: str, schema: str = "public") -> bool:
     """
     Check if a trigger exists on a table.
-    
+
     Args:
         cursor: Database cursor
         trigger_name: Name of the trigger
         table_name: Name of the table
         schema: Schema name (default: public)
-        
+
     Returns:
         True if trigger exists, False otherwise
     """
@@ -126,15 +126,15 @@ def trigger_exists(cursor, trigger_name: str, table_name: str, schema: str = 'pu
     return cursor.fetchone()[0]
 
 
-def constraint_exists(cursor, constraint_name: str, schema: str = 'public') -> bool:
+def constraint_exists(cursor, constraint_name: str, schema: str = "public") -> bool:
     """
     Check if a constraint exists.
-    
+
     Args:
         cursor: Database cursor
         constraint_name: Name of the constraint
         schema: Schema name (default: public)
-        
+
     Returns:
         True if constraint exists, False otherwise
     """
@@ -152,11 +152,11 @@ def constraint_exists(cursor, constraint_name: str, schema: str = 'public') -> b
 def is_hypertable(cursor, table_name: str) -> bool:
     """
     Check if a table is a TimescaleDB hypertable.
-    
+
     Args:
         cursor: Database cursor
         table_name: Name of the table
-        
+
     Returns:
         True if table is a hypertable, False otherwise
     """
@@ -170,15 +170,15 @@ def is_hypertable(cursor, table_name: str) -> bool:
     return cursor.fetchone()[0]
 
 
-def get_table_columns(cursor, table_name: str, schema: str = 'public') -> List[Dict[str, Any]]:
+def get_table_columns(cursor, table_name: str, schema: str = "public") -> List[Dict[str, Any]]:
     """
     Get column information for a table.
-    
+
     Args:
         cursor: Database cursor
         table_name: Name of the table
         schema: Schema name (default: public)
-        
+
     Returns:
         List of dictionaries with column information
     """
@@ -196,15 +196,15 @@ def get_table_columns(cursor, table_name: str, schema: str = 'public') -> List[D
     return execute_query(cursor, query, (schema, table_name))
 
 
-def get_table_indexes(cursor, table_name: str, schema: str = 'public') -> List[Dict[str, Any]]:
+def get_table_indexes(cursor, table_name: str, schema: str = "public") -> List[Dict[str, Any]]:
     """
     Get index information for a table.
-    
+
     Args:
         cursor: Database cursor
         table_name: Name of the table
         schema: Schema name (default: public)
-        
+
     Returns:
         List of dictionaries with index information
     """
@@ -219,15 +219,15 @@ def get_table_indexes(cursor, table_name: str, schema: str = 'public') -> List[D
     return execute_query(cursor, query, (schema, table_name))
 
 
-def get_foreign_keys(cursor, table_name: str, schema: str = 'public') -> List[Dict[str, Any]]:
+def get_foreign_keys(cursor, table_name: str, schema: str = "public") -> List[Dict[str, Any]]:
     """
     Get foreign key constraints for a table.
-    
+
     Args:
         cursor: Database cursor
         table_name: Name of the table
         schema: Schema name (default: public)
-        
+
     Returns:
         List of dictionaries with foreign key information
     """
@@ -259,31 +259,26 @@ def get_foreign_keys(cursor, table_name: str, schema: str = 'public') -> List[Di
 def explain_query(cursor, query: str, params: Optional[Tuple] = None) -> str:
     """
     Get query execution plan using EXPLAIN.
-    
+
     Args:
         cursor: Database cursor
         query: SQL query string
         params: Optional query parameters
-        
+
     Returns:
         Query plan as string
     """
     explain_query_str = f"EXPLAIN ANALYZE {query}"
     cursor.execute(explain_query_str, params)
-    return '\n'.join([row[0] for row in cursor.fetchall()])
+    return "\n".join([row[0] for row in cursor.fetchall()])
 
 
 def insert_sample_asset(
-    cursor,
-    symbol: str,
-    asset_type: str,
-    name: str,
-    source: str = 'Test',
-    **kwargs
+    cursor, symbol: str, asset_type: str, name: str, source: str = "Test", **kwargs
 ) -> int:
     """
     Insert a sample asset and return the asset_id.
-    
+
     Args:
         cursor: Database cursor
         symbol: Asset symbol
@@ -291,20 +286,20 @@ def insert_sample_asset(
         name: Asset name
         source: Data source
         **kwargs: Additional asset fields
-        
+
     Returns:
         asset_id of the inserted asset
     """
     # Build insert query dynamically
-    fields = ['symbol', 'asset_type', 'name', 'source']
+    fields = ["symbol", "asset_type", "name", "source"]
     values = [symbol, asset_type, name, source]
-    placeholders = ['%s'] * len(fields)
-    
+    placeholders = ["%s"] * len(fields)
+
     for key, value in kwargs.items():
         fields.append(key)
         values.append(value)
-        placeholders.append('%s')
-    
+        placeholders.append("%s")
+
     query = f"""
         INSERT INTO assets ({', '.join(fields)})
         VALUES ({', '.join(placeholders)})
@@ -312,4 +307,3 @@ def insert_sample_asset(
     """
     cursor.execute(query, tuple(values))
     return cursor.fetchone()[0]
-

@@ -7,7 +7,7 @@ from typing import Optional, Tuple
 # Try to load .env file if python-dotenv is available
 try:
     from dotenv import load_dotenv
-    
+
     # Load .env file from project root
     env_path = Path(__file__).parent.parent.parent.parent / ".env"
     if env_path.exists():
@@ -40,9 +40,7 @@ class Config:
     DEFAULT_TIMEOUT: int = int(os.getenv("DEFAULT_TIMEOUT", "30"))
     DEFAULT_MAX_RETRIES: int = int(os.getenv("DEFAULT_MAX_RETRIES", "3"))
     DEFAULT_RATE_LIMIT_CALLS: int = int(os.getenv("DEFAULT_RATE_LIMIT_CALLS", "10"))
-    DEFAULT_RATE_LIMIT_PERIOD: int = int(
-        os.getenv("DEFAULT_RATE_LIMIT_PERIOD", "60")
-    )
+    DEFAULT_RATE_LIMIT_PERIOD: int = int(os.getenv("DEFAULT_RATE_LIMIT_PERIOD", "60"))
 
     @classmethod
     def get_fred_api_key(cls) -> Optional[str]:

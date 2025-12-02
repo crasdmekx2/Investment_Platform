@@ -3,6 +3,11 @@
 import logging
 from typing import List, Dict, Any
 from fastapi import APIRouter, HTTPException, Query
+from investment_platform.api.constants import (
+    DEFAULT_SEARCH_LIMIT,
+    MAX_SEARCH_LIMIT,
+    MIN_PAGE_LIMIT,
+)
 from investment_platform.api.services import collector_service as collector_svc
 from investment_platform.api.models.scheduler import ValidateRequest, ValidateResponse
 from investment_platform.collectors.base import ValidationError, APIError
@@ -43,7 +48,12 @@ async def get_collector_options(asset_type: str) -> Dict[str, Any]:
 async def search_assets(
     asset_type: str,
     q: str = Query(..., min_length=1, description="Search query"),
-    limit: int = Query(50, ge=1, le=100, description="Maximum number of results"),
+    limit: int = Query(
+        DEFAULT_SEARCH_LIMIT,
+        ge=MIN_PAGE_LIMIT,
+        le=MAX_SEARCH_LIMIT,
+        description="Maximum number of results",
+    ),
 ) -> List[Dict[str, Any]]:
     """Search for assets/symbols of a given type."""
     try:

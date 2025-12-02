@@ -94,14 +94,33 @@ class DataLoader:
                 # Create temporary table with unique name (include timestamp to avoid collisions)
                 import time
                 import uuid
+                import re
 
                 unique_id = f"{abs(hash(str(data.index)))}_{int(time.time() * 1000000)}_{uuid.uuid4().hex[:8]}"
                 temp_table = f"{table}_temp_{unique_id}"
+
+                # Security: Validate temp_table name follows expected pattern
+                # This ensures temp_table is always generated, never from user input
+                # Pattern: {table}_temp_{alphanumeric_and_underscore}
+                temp_table_pattern = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*_temp_[a-zA-Z0-9_]+$")
+                if not temp_table_pattern.match(temp_table):
+                    raise ValueError(
+                        f"Invalid temp table name pattern: {temp_table}. "
+                        "This should never happen - temp table names are always generated."
+                    )
+
+                # Security: Ensure table name is in whitelist (prevents using arbitrary tables)
+                if table not in self.ASSET_TYPE_TO_TABLE.values():
+                    raise ValueError(
+                        f"Table '{table}' is not in allowed whitelist. "
+                        "Only predefined tables can be used."
+                    )
 
                 # Get column names from DataFrame
                 columns = list(data.columns)
 
                 # Create temp table with same structure (IF NOT EXISTS to handle race conditions)
+                # Security: temp_table is validated above and always generated (never user input)
                 cursor.execute(
                     f"""
                     CREATE TEMP TABLE IF NOT EXISTS {temp_table} (LIKE {table} INCLUDING ALL)
@@ -127,6 +146,7 @@ class DataLoader:
                     raise
 
                 # Count records in temp table
+                # Security: temp_table is validated above - always generated, never user input
                 cursor.execute(f"SELECT COUNT(*) FROM {temp_table}")
                 temp_count = cursor.fetchone()[0]
 

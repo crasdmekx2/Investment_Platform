@@ -26,14 +26,14 @@ class TestSchedulerAPIEndpoints:
     def test_list_jobs_endpoint(self, client, db_transaction):
         """Test GET /api/scheduler/jobs endpoint."""
         response = client.get("/api/scheduler/jobs")
-        
+
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
     def test_list_jobs_with_pagination(self, client, db_transaction):
         """Test GET /api/scheduler/jobs with pagination."""
         response = client.get("/api/scheduler/jobs?limit=10&offset=0")
-        
+
         assert response.status_code == 200
         jobs = response.json()
         assert isinstance(jobs, list)
@@ -42,7 +42,7 @@ class TestSchedulerAPIEndpoints:
     def test_list_jobs_with_status_filter(self, client, db_transaction):
         """Test GET /api/scheduler/jobs with status filter."""
         response = client.get("/api/scheduler/jobs?status=active")
-        
+
         assert response.status_code == 200
         jobs = response.json()
         assert all(job["status"] == "active" for job in jobs)
@@ -50,7 +50,7 @@ class TestSchedulerAPIEndpoints:
     def test_list_jobs_with_asset_type_filter(self, client, db_transaction):
         """Test GET /api/scheduler/jobs with asset_type filter."""
         response = client.get("/api/scheduler/jobs?asset_type=stock")
-        
+
         assert response.status_code == 200
         jobs = response.json()
         assert all(job["asset_type"] == "stock" for job in jobs)
@@ -63,9 +63,9 @@ class TestSchedulerAPIEndpoints:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         response = client.post("/api/scheduler/jobs", json=job_data)
-        
+
         assert response.status_code == 201
         job = response.json()
         assert job["symbol"] == "AAPL"
@@ -78,7 +78,7 @@ class TestSchedulerAPIEndpoints:
         job_data = {
             "symbol": "AAPL",
         }
-        
+
         response = client.post("/api/scheduler/jobs", json=job_data)
         assert response.status_code == 422  # Validation error
 
@@ -90,7 +90,7 @@ class TestSchedulerAPIEndpoints:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         response = client.post("/api/scheduler/jobs", json=job_data)
         assert response.status_code == 422
 
@@ -103,13 +103,13 @@ class TestSchedulerAPIEndpoints:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Get job
         response = client.get(f"/api/scheduler/jobs/{job_id}")
-        
+
         assert response.status_code == 200
         job = response.json()
         assert job["job_id"] == job_id
@@ -117,7 +117,7 @@ class TestSchedulerAPIEndpoints:
     def test_get_job_not_found(self, client, db_transaction):
         """Test GET /api/scheduler/jobs/{job_id} with non-existent job."""
         response = client.get("/api/scheduler/jobs/nonexistent")
-        
+
         assert response.status_code == 404
 
     def test_update_job_endpoint(self, client, db_transaction):
@@ -129,18 +129,18 @@ class TestSchedulerAPIEndpoints:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Update job
         update_data = {
             "symbol": "MSFT",
             "trigger_config": {"minutes": 10},
         }
-        
+
         response = client.put(f"/api/scheduler/jobs/{job_id}", json=update_data)
-        
+
         assert response.status_code == 200
         updated_job = response.json()
         assert updated_job["symbol"] == "MSFT"
@@ -149,9 +149,9 @@ class TestSchedulerAPIEndpoints:
     def test_update_job_not_found(self, client, db_transaction):
         """Test PUT /api/scheduler/jobs/{job_id} with non-existent job."""
         update_data = {"symbol": "MSFT"}
-        
+
         response = client.put("/api/scheduler/jobs/nonexistent", json=update_data)
-        
+
         assert response.status_code == 404
 
     def test_delete_job_endpoint(self, client, db_transaction):
@@ -163,19 +163,19 @@ class TestSchedulerAPIEndpoints:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Delete job
         response = client.delete(f"/api/scheduler/jobs/{job_id}")
-        
+
         assert response.status_code == 204
 
     def test_delete_job_not_found(self, client, db_transaction):
         """Test DELETE /api/scheduler/jobs/{job_id} with non-existent job."""
         response = client.delete("/api/scheduler/jobs/nonexistent")
-        
+
         assert response.status_code == 404
 
     def test_pause_job_endpoint(self, client, db_transaction):
@@ -187,13 +187,13 @@ class TestSchedulerAPIEndpoints:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Pause job
         response = client.post(f"/api/scheduler/jobs/{job_id}/pause")
-        
+
         assert response.status_code == 200
         paused_job = response.json()
         assert paused_job["status"] == "paused"
@@ -207,15 +207,15 @@ class TestSchedulerAPIEndpoints:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         client.post(f"/api/scheduler/jobs/{job_id}/pause")
-        
+
         # Resume job
         response = client.post(f"/api/scheduler/jobs/{job_id}/resume")
-        
+
         assert response.status_code == 200
         resumed_job = response.json()
         assert resumed_job["status"] == "active"
@@ -229,15 +229,15 @@ class TestSchedulerAPIEndpoints:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         client.post(f"/api/scheduler/jobs/{job_id}/resume")
-        
+
         # Trigger job
         response = client.post(f"/api/scheduler/jobs/{job_id}/trigger")
-        
+
         assert response.status_code == 200
         result = response.json()
         assert result["status"] == "triggered"
@@ -252,13 +252,13 @@ class TestSchedulerAPIEndpoints:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Get executions
         response = client.get(f"/api/scheduler/jobs/{job_id}/executions")
-        
+
         assert response.status_code == 200
         executions = response.json()
         assert isinstance(executions, list)
@@ -272,13 +272,13 @@ class TestSchedulerAPIEndpoints:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Get executions with pagination
         response = client.get(f"/api/scheduler/jobs/{job_id}/executions?limit=10&offset=0")
-        
+
         assert response.status_code == 200
         executions = response.json()
         assert isinstance(executions, list)
@@ -288,7 +288,7 @@ class TestSchedulerAPIEndpoints:
         """Test creating job with start and end dates."""
         start_date = (datetime.now() - timedelta(days=7)).isoformat()
         end_date = datetime.now().isoformat()
-        
+
         job_data = {
             "symbol": "AAPL",
             "asset_type": "stock",
@@ -297,9 +297,9 @@ class TestSchedulerAPIEndpoints:
             "start_date": start_date,
             "end_date": end_date,
         }
-        
+
         response = client.post("/api/scheduler/jobs", json=job_data)
-        
+
         assert response.status_code == 201
         job = response.json()
         assert job["start_date"] is not None
@@ -314,9 +314,9 @@ class TestSchedulerAPIEndpoints:
             "trigger_config": {"minutes": 5},
             "collector_kwargs": {"granularity": "1h"},
         }
-        
+
         response = client.post("/api/scheduler/jobs", json=job_data)
-        
+
         assert response.status_code == 201
         job = response.json()
         assert job["collector_kwargs"] is not None
@@ -333,9 +333,9 @@ class TestSchedulerAPIEndpoints:
                 "minute": "0",
             },
         }
-        
+
         response = client.post("/api/scheduler/jobs", json=job_data)
-        
+
         assert response.status_code == 201
         job = response.json()
         assert job["trigger_type"] == "cron"
@@ -349,9 +349,7 @@ class TestSchedulerAPIEndpoints:
             "trigger_type": "interval",
             "trigger_config": {},  # Empty config
         }
-        
+
         response = client.post("/api/scheduler/jobs", json=job_data)
         # Should either succeed (if empty is valid) or return error
         assert response.status_code in [201, 400, 422]
-
-

@@ -1,12 +1,20 @@
 """Ingestion API router."""
 
 import logging
+import json
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
 from psycopg2.extras import RealDictCursor
 
+from investment_platform.api.constants import (
+    DEFAULT_PAGE_LIMIT,
+    DEFAULT_PAGE_OFFSET,
+    DEFAULT_THREAD_POOL_WORKERS,
+    MAX_PAGE_LIMIT,
+    MIN_PAGE_LIMIT,
+)
 from investment_platform.api.models.scheduler import (
     CollectRequest,
     CollectResponse,
@@ -19,16 +27,15 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Store active collection jobs (in production, use Redis or similar)
-_active_jobs: Dict[str, Dict[str, Any]] = {}
-
 # Thread pool for running collection tasks
-_executor = ThreadPoolExecutor(max_workers=5)
+_executor = ThreadPoolExecutor(max_workers=DEFAULT_THREAD_POOL_WORKERS)
 
 
 def run_collection_task(job_id: str, request: CollectRequest) -> None:
     """
     Background task to run data collection.
+
+    Updates job status in database instead of in-memory storage.
 
     Args:
         job_id: Unique job identifier
@@ -50,16 +57,49 @@ def run_collection_task(job_id: str, request: CollectRequest) -> None:
             asset_metadata=request.asset_metadata,
         )
 
-        _active_jobs[job_id]["status"] = "completed"
-        _active_jobs[job_id]["result"] = result
+        # Update job status in database
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE active_collection_jobs
+                    SET status = 'completed',
+                        result_data = %s,
+                        completed_at = NOW()
+                    WHERE job_id = %s
+                    """,
+                    (json.dumps(result), job_id),
+                )
+                conn.commit()
+
+        logger.info(f"Collection job {job_id} completed successfully")
 
     except Exception as e:
         logger.error(
             f"Collection job {job_id} failed for {request.symbol} ({request.asset_type}): {e}",
             exc_info=True,
         )
-        _active_jobs[job_id]["status"] = "failed"
-        _active_jobs[job_id]["error"] = str(e)
+
+        # Update job status in database
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        UPDATE active_collection_jobs
+                        SET status = 'failed',
+                            error_message = %s,
+                            completed_at = NOW()
+                        WHERE job_id = %s
+                        """,
+                        (str(e), job_id),
+                    )
+                    conn.commit()
+        except Exception as db_error:
+            logger.error(
+                f"Failed to update job status in database for {job_id}: {db_error}",
+                exc_info=True,
+            )
 
 
 @router.post("/collect", response_model=CollectResponse)
@@ -67,17 +107,33 @@ async def collect_data(
     request: CollectRequest,
     background_tasks: BackgroundTasks,
 ) -> CollectResponse:
-    """Trigger immediate data collection (full history or incremental)."""
+    """
+    Trigger immediate data collection (full history or incremental).
+
+    Creates a database-backed job record instead of using in-memory storage.
+    This enables persistence across server restarts and scalability.
+    """
     import uuid
 
     job_id = f"collect_{uuid.uuid4().hex[:8]}"
 
-    # Store job info
-    _active_jobs[job_id] = {
-        "status": "running",
-        "request": request,
-        "started_at": datetime.now(),
-    }
+    # Store job info in database
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO active_collection_jobs
+                (job_id, symbol, asset_type, status, request_data, started_at)
+                VALUES (%s, %s, %s, 'running', %s, NOW())
+                """,
+                (
+                    job_id,
+                    request.symbol,
+                    request.asset_type,
+                    json.dumps(request.dict()),
+                ),
+            )
+            conn.commit()
 
     # Run collection in background thread pool
     _executor.submit(run_collection_task, job_id, request)
@@ -91,22 +147,36 @@ async def collect_data(
 
 @router.get("/status/{job_id}", response_model=Dict[str, Any])
 async def get_collection_status(job_id: str) -> Dict[str, Any]:
-    """Get collection job status."""
-    if job_id not in _active_jobs:
+    """
+    Get collection job status.
+
+    Retrieves job status from database instead of in-memory storage.
+    """
+    with get_db_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                "SELECT * FROM active_collection_jobs WHERE job_id = %s",
+                (job_id,),
+            )
+            job = cursor.fetchone()
+
+    if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-    job = _active_jobs[job_id]
     response = {
         "job_id": job_id,
         "status": job["status"],
-        "started_at": job["started_at"].isoformat(),
+        "started_at": job["started_at"].isoformat() if job["started_at"] else None,
     }
 
-    if "result" in job:
-        response["result"] = job["result"]
+    if job["completed_at"]:
+        response["completed_at"] = job["completed_at"].isoformat()
 
-    if "error" in job:
-        response["error"] = job["error"]
+    if job["result_data"]:
+        response["result"] = job["result_data"]
+
+    if job["error_message"]:
+        response["error"] = job["error_message"]
 
     return response
 
@@ -117,8 +187,8 @@ async def get_collection_logs(
     status: Optional[str] = Query(None, description="Filter by status"),
     start_date: Optional[datetime] = Query(None, description="Filter by start date"),
     end_date: Optional[datetime] = Query(None, description="Filter by end date"),
-    limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_PAGE_LIMIT, ge=MIN_PAGE_LIMIT, le=MAX_PAGE_LIMIT),
+    offset: int = Query(DEFAULT_PAGE_OFFSET, ge=0),
 ) -> List[CollectionLogResponse]:
     """Get data collection logs with filtering."""
     with get_db_connection() as conn:

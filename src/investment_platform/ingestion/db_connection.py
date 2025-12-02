@@ -2,12 +2,13 @@
 
 import os
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 from contextlib import contextmanager
 
 import psycopg2
 from psycopg2 import pool, sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from psycopg2.extensions import connection as Connection
 
 logger = logging.getLogger(__name__)
 
@@ -15,12 +16,17 @@ logger = logging.getLogger(__name__)
 _connection_pool: Optional[pool.ThreadedConnectionPool] = None
 
 
-def get_db_config() -> dict:
+def get_db_config() -> Dict[str, Any]:
     """
     Get database configuration from environment variables.
 
     Returns:
-        Dictionary with database connection parameters
+        Dictionary with database connection parameters:
+        - host: Database hostname
+        - port: Database port number
+        - database: Database name
+        - user: Database username
+        - password: Database password
     """
     return {
         "host": os.getenv("DB_HOST", "localhost"),
@@ -31,13 +37,16 @@ def get_db_config() -> dict:
     }
 
 
-def initialize_connection_pool(min_conn: int = 1, max_conn: int = 10):
+def initialize_connection_pool(min_conn: int = 1, max_conn: int = 10) -> None:
     """
     Initialize the database connection pool.
 
     Args:
         min_conn: Minimum number of connections in the pool
         max_conn: Maximum number of connections in the pool
+
+    Raises:
+        Exception: If connection pool initialization fails
     """
     global _connection_pool
 
@@ -63,7 +72,7 @@ def initialize_connection_pool(min_conn: int = 1, max_conn: int = 10):
         raise
 
 
-def close_connection_pool():
+def close_connection_pool() -> None:
     """Close the database connection pool."""
     global _connection_pool
 
@@ -74,7 +83,7 @@ def close_connection_pool():
 
 
 @contextmanager
-def get_db_connection(autocommit: bool = False):
+def get_db_connection(autocommit: bool = False) -> Connection:
     """
     Get a database connection from the pool.
 
@@ -109,7 +118,7 @@ def get_db_connection(autocommit: bool = False):
             _connection_pool.putconn(conn)
 
 
-def get_db_connection_direct(autocommit: bool = False):
+def get_db_connection_direct(autocommit: bool = False) -> Connection:
     """
     Get a direct database connection (not from pool).
     Useful for one-off operations or when pool is not needed.
@@ -119,6 +128,9 @@ def get_db_connection_direct(autocommit: bool = False):
 
     Returns:
         psycopg2.connection: Database connection
+
+    Raises:
+        psycopg2.OperationalError: If connection fails
     """
     config = get_db_config()
     conn = psycopg2.connect(**config)

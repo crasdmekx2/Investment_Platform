@@ -93,7 +93,9 @@ class TestSchedulerRouter:
 
         mock_scheduler_service.list_jobs.return_value = []
 
-        response = client.get("/api/scheduler/jobs?status=active&asset_type=stock&limit=10&offset=0")
+        response = client.get(
+            "/api/scheduler/jobs?status=active&asset_type=stock&limit=10&offset=0"
+        )
 
         assert response.status_code == 200
         mock_scheduler_service.list_jobs.assert_called_once_with(
@@ -143,7 +145,9 @@ class TestSchedulerRouter:
 
         assert response.status_code == 404
 
-    def test_create_job_success(self, client, mock_scheduler_service, mock_app_state, mock_scheduler):
+    def test_create_job_success(
+        self, client, mock_scheduler_service, mock_app_state, mock_scheduler
+    ):
         """Test successful job creation."""
         from investment_platform.api.models.scheduler import JobResponse
 
@@ -178,7 +182,12 @@ class TestSchedulerRouter:
 
         mock_scheduler_service.create_job.side_effect = ValidationError("Invalid symbol")
 
-        job_data = {"symbol": "", "asset_type": "stock", "trigger_type": "interval", "trigger_config": {}}
+        job_data = {
+            "symbol": "",
+            "asset_type": "stock",
+            "trigger_type": "interval",
+            "trigger_config": {},
+        }
 
         response = client.post("/api/scheduler/jobs", json=job_data)
 
@@ -212,7 +221,9 @@ class TestSchedulerRouter:
         # Should still create job in DB even if scheduler unavailable
         assert response.status_code in [201, 503]  # May fail if scheduler required
 
-    def test_update_job_success(self, client, mock_scheduler_service, mock_app_state, mock_scheduler):
+    def test_update_job_success(
+        self, client, mock_scheduler_service, mock_app_state, mock_scheduler
+    ):
         """Test successful job update."""
         from investment_platform.api.models.scheduler import JobResponse
 
@@ -244,7 +255,9 @@ class TestSchedulerRouter:
 
         assert response.status_code == 404
 
-    def test_delete_job_success(self, client, mock_scheduler_service, mock_app_state, mock_scheduler):
+    def test_delete_job_success(
+        self, client, mock_scheduler_service, mock_app_state, mock_scheduler
+    ):
         """Test successful job deletion."""
         mock_scheduler_service.delete_job.return_value = True
 
@@ -261,7 +274,9 @@ class TestSchedulerRouter:
 
         assert response.status_code == 404
 
-    def test_pause_job_success(self, client, mock_scheduler_service, mock_app_state, mock_scheduler):
+    def test_pause_job_success(
+        self, client, mock_scheduler_service, mock_app_state, mock_scheduler
+    ):
         """Test successful job pause."""
         from investment_platform.api.models.scheduler import JobResponse
 
@@ -291,7 +306,9 @@ class TestSchedulerRouter:
 
         assert response.status_code == 404
 
-    def test_resume_job_success(self, client, mock_scheduler_service, mock_app_state, mock_scheduler):
+    def test_resume_job_success(
+        self, client, mock_scheduler_service, mock_app_state, mock_scheduler
+    ):
         """Test successful job resume."""
         from investment_platform.api.models.scheduler import JobResponse
 
@@ -320,7 +337,9 @@ class TestSchedulerRouter:
 
         assert response.status_code == 404
 
-    def test_trigger_job_success(self, client, mock_scheduler_service, mock_app_state, mock_scheduler):
+    def test_trigger_job_success(
+        self, client, mock_scheduler_service, mock_app_state, mock_scheduler
+    ):
         """Test successful job trigger."""
         from investment_platform.api.models.scheduler import JobResponse
 
@@ -542,4 +561,3 @@ class TestSchedulerRouter:
 
         assert response.status_code == 200
         mock_scheduler_service.get_scheduler_analytics.assert_called_once()
-

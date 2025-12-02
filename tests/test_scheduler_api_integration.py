@@ -32,9 +32,9 @@ class TestSchedulerAPIIntegration:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         response = client.post("/api/scheduler/jobs", json=job_data)
-        
+
         assert response.status_code == 201
         job = response.json()
         assert job["symbol"] == "AAPL"
@@ -51,14 +51,14 @@ class TestSchedulerAPIIntegration:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 10},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         assert create_response.status_code == 201
-        
+
         # List jobs
         list_response = client.get("/api/scheduler/jobs")
         assert list_response.status_code == 200
-        
+
         jobs = list_response.json()
         assert len(jobs) >= 1
         assert any(job["symbol"] == "MSFT" for job in jobs)
@@ -72,14 +72,14 @@ class TestSchedulerAPIIntegration:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Get job
         get_response = client.get(f"/api/scheduler/jobs/{job_id}")
         assert get_response.status_code == 200
-        
+
         job = get_response.json()
         assert job["job_id"] == job_id
         assert job["symbol"] == "AAPL"
@@ -93,19 +93,19 @@ class TestSchedulerAPIIntegration:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Update job
         update_data = {
             "symbol": "MSFT",
             "trigger_config": {"minutes": 10},
         }
-        
+
         update_response = client.put(f"/api/scheduler/jobs/{job_id}", json=update_data)
         assert update_response.status_code == 200
-        
+
         updated_job = update_response.json()
         assert updated_job["symbol"] == "MSFT"
         assert updated_job["trigger_config"]["minutes"] == 10
@@ -119,14 +119,14 @@ class TestSchedulerAPIIntegration:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Delete job
         delete_response = client.delete(f"/api/scheduler/jobs/{job_id}")
         assert delete_response.status_code == 204
-        
+
         # Verify job is gone
         get_response = client.get(f"/api/scheduler/jobs/{job_id}")
         assert get_response.status_code == 404
@@ -140,14 +140,14 @@ class TestSchedulerAPIIntegration:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Pause job
         pause_response = client.post(f"/api/scheduler/jobs/{job_id}/pause")
         assert pause_response.status_code == 200
-        
+
         paused_job = pause_response.json()
         assert paused_job["status"] == "paused"
 
@@ -160,16 +160,16 @@ class TestSchedulerAPIIntegration:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         client.post(f"/api/scheduler/jobs/{job_id}/pause")
-        
+
         # Resume job
         resume_response = client.post(f"/api/scheduler/jobs/{job_id}/resume")
         assert resume_response.status_code == 200
-        
+
         resumed_job = resume_response.json()
         assert resumed_job["status"] == "active"
 
@@ -182,17 +182,17 @@ class TestSchedulerAPIIntegration:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Activate job first (so it's in scheduler)
         client.post(f"/api/scheduler/jobs/{job_id}/resume")
-        
+
         # Trigger job
         trigger_response = client.post(f"/api/scheduler/jobs/{job_id}/trigger")
         assert trigger_response.status_code == 200
-        
+
         result = trigger_response.json()
         assert result["status"] == "triggered"
         assert result["job_id"] == job_id
@@ -206,11 +206,11 @@ class TestSchedulerAPIIntegration:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         job1_response = client.post("/api/scheduler/jobs", json=job1_data)
         job1_id = job1_response.json()["job_id"]
         client.post(f"/api/scheduler/jobs/{job1_id}/resume")
-        
+
         job2_data = {
             "symbol": "MSFT",
             "asset_type": "stock",
@@ -218,13 +218,13 @@ class TestSchedulerAPIIntegration:
             "trigger_config": {"minutes": 5},
         }
         client.post("/api/scheduler/jobs", json=job2_data)
-        
+
         # Filter by status
         active_response = client.get("/api/scheduler/jobs?status=active")
         assert active_response.status_code == 200
         active_jobs = active_response.json()
         assert all(job["status"] == "active" for job in active_jobs)
-        
+
         # Filter by asset type
         stock_response = client.get("/api/scheduler/jobs?asset_type=stock")
         assert stock_response.status_code == 200
@@ -240,10 +240,10 @@ class TestSchedulerAPIIntegration:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Get executions (should be empty initially)
         executions_response = client.get(f"/api/scheduler/jobs/{job_id}/executions")
         assert executions_response.status_code == 200
@@ -254,20 +254,20 @@ class TestSchedulerAPIIntegration:
         """Test that creating a job adds it to scheduler."""
         # This test verifies that when a job is created via API,
         # it gets added to the scheduler instance
-        
+
         job_data = {
             "symbol": "AAPL",
             "asset_type": "stock",
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Activate job (which should add it to scheduler)
         client.post(f"/api/scheduler/jobs/{job_id}/resume")
-        
+
         # Verify job exists in scheduler by trying to trigger it
         trigger_response = client.post(f"/api/scheduler/jobs/{job_id}/trigger")
         assert trigger_response.status_code == 200
@@ -281,19 +281,19 @@ class TestSchedulerAPIIntegration:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
-        
+
         # Activate job
         client.post(f"/api/scheduler/jobs/{job_id}/resume")
-        
+
         # Update job
         update_data = {
             "trigger_config": {"minutes": 10},
         }
         client.put(f"/api/scheduler/jobs/{job_id}", json=update_data)
-        
+
         # Verify update by getting job
         get_response = client.get(f"/api/scheduler/jobs/{job_id}")
         updated_job = get_response.json()
@@ -308,16 +308,14 @@ class TestSchedulerAPIIntegration:
             "trigger_type": "interval",
             "trigger_config": {"minutes": 5},
         }
-        
+
         create_response = client.post("/api/scheduler/jobs", json=job_data)
         job_id = create_response.json()["job_id"]
         client.post(f"/api/scheduler/jobs/{job_id}/resume")
-        
+
         # Delete job
         client.delete(f"/api/scheduler/jobs/{job_id}")
-        
+
         # Verify job is gone
         get_response = client.get(f"/api/scheduler/jobs/{job_id}")
         assert get_response.status_code == 404
-
-

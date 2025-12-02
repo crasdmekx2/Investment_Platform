@@ -141,7 +141,7 @@ class PersistentScheduler(IngestionScheduler):
             raise ValueError(f"Unknown trigger type: {trigger_type}")
 
         # Get retry configuration from database (defaults if not set)
-        max_retries = job_row.get("max_retries", 3)
+        max_retries = job_row.get("max_retries", DEFAULT_MAX_RETRIES)
         retry_delay_seconds = job_row.get("retry_delay_seconds", 60)
         retry_backoff_multiplier = float(job_row.get("retry_backoff_multiplier", 2.0))
 
@@ -307,7 +307,7 @@ class PersistentScheduler(IngestionScheduler):
                     self.logger.warning(f"Job {job_id} not found for retry handling")
                     return
 
-                max_retries = job_row.get("max_retries", 3)
+                max_retries = job_row.get("max_retries", DEFAULT_MAX_RETRIES)
                 retry_delay_seconds = job_row.get("retry_delay_seconds", 60)
                 retry_backoff_multiplier = float(job_row.get("retry_backoff_multiplier", 2.0))
                 job_status = job_row.get("status")

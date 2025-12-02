@@ -34,12 +34,12 @@ def test_function_creation(db_connection):
     try:
         cur.execute(sql)
         db_connection.commit()
-        
+
         # Check if it exists
         cur.execute("SELECT proname FROM pg_proc WHERE proname = 'update_updated_at_column';")
         result = cur.fetchone()
         assert result is not None, "Function not found in pg_proc"
-        assert result[0] == 'update_updated_at_column'
+        assert result[0] == "update_updated_at_column"
     except Exception as e:
         db_connection.rollback()
         pytest.fail(f"Failed to create function: {e}")

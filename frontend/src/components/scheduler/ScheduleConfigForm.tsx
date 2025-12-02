@@ -162,7 +162,7 @@ export function ScheduleConfigForm({
             </p>
           </div>
         )}
-      </div>
+      </fieldset>
 
       {/* Schedule Now Configuration */}
       {triggerType === 'now' && (

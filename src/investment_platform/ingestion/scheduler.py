@@ -51,8 +51,10 @@ class IngestionScheduler:
         self.logger = logger
         self.ingestion_engine = IngestionEngine()
 
-        # Get max workers from environment variable (default: 10)
-        max_workers = int(os.getenv("SCHEDULER_MAX_WORKERS", "10"))
+        # Get max workers from environment variable
+        from investment_platform.api.constants import DEFAULT_SCHEDULER_MAX_WORKERS
+
+        max_workers = int(os.getenv("SCHEDULER_MAX_WORKERS", str(DEFAULT_SCHEDULER_MAX_WORKERS)))
 
         if blocking:
             self.scheduler = BlockingScheduler(timezone=timezone)
@@ -119,7 +121,9 @@ class IngestionScheduler:
             job_id = f"{asset_type}_{symbol}_{int(datetime.now().timestamp())}"
 
         # Store retry configuration
-        job_max_retries = max_retries if max_retries is not None else 3
+        from investment_platform.api.constants import DEFAULT_MAX_RETRIES
+
+        job_max_retries = max_retries if max_retries is not None else DEFAULT_MAX_RETRIES
         job_retry_delay = retry_delay_seconds if retry_delay_seconds is not None else 60
         job_backoff_multiplier = (
             retry_backoff_multiplier if retry_backoff_multiplier is not None else 2.0

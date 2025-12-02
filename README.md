@@ -85,9 +85,97 @@ A Python project for investment management.
 
 ## Usage
 
-Run the main application:
+### Running the Application
+
+Start the API server:
 ```bash
 python -m investment_platform.main
+```
+
+Or use uvicorn directly:
+```bash
+uvicorn investment_platform.api.main:app --reload --port 8000
+```
+
+The API will be available at `http://localhost:8000`. Interactive API documentation is available at:
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+### Usage Examples
+
+#### Example API Calls
+
+**List all scheduled jobs:**
+```bash
+curl http://localhost:8000/api/scheduler/jobs
+```
+
+**Create a scheduled job:**
+```bash
+curl -X POST http://localhost:8000/api/scheduler/jobs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "symbol": "AAPL",
+    "asset_type": "stock",
+    "trigger_type": "cron",
+    "trigger_config": {
+      "type": "cron",
+      "hour": "9",
+      "minute": "0"
+    }
+  }'
+```
+
+**Trigger immediate data collection:**
+```bash
+curl -X POST http://localhost:8000/api/ingestion/collect \
+  -H "Content-Type: application/json" \
+  -d '{
+    "symbol": "AAPL",
+    "asset_type": "stock",
+    "start_date": "2024-01-01",
+    "end_date": "2024-12-31"
+  }'
+```
+
+**Get asset data:**
+```bash
+curl http://localhost:8000/api/assets/1
+```
+
+#### Frontend Integration
+
+The frontend application connects to the backend API automatically when both are running:
+
+1. Start the backend API server (see above)
+2. Start the frontend development server:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+3. Open `http://localhost:3000` in your browser
+
+The frontend uses the API base URL configured in `.env` (default: `http://localhost:8000/api`).
+
+#### Scheduler Job Creation
+
+Create a job that collects stock data daily at 9 AM:
+
+```python
+from investment_platform.api.models.scheduler import JobCreate, CronTriggerConfig
+
+job_data = JobCreate(
+    symbol="AAPL",
+    asset_type="stock",
+    trigger_type="cron",
+    trigger_config={
+        "type": "cron",
+        "hour": "9",
+        "minute": "0"
+    }
+)
+
+# Use the scheduler service or API endpoint to create the job
 ```
 
 ## Database Setup
@@ -292,6 +380,8 @@ mypy src/
    - `VITE_API_BASE_URL`: Backend API base URL (default: `http://localhost:8000/api`)
    - `VITE_WS_URL`: WebSocket URL for real-time data (default: `ws://localhost:8000/ws`)
 
+   For detailed environment variable configuration, see [Environment Variables Documentation](docs/environment-variables.md).
+
 ### Development
 
 Start the development server:
@@ -346,6 +436,254 @@ npm run test:coverage
 - **Axios** - HTTP client
 - **Vitest** - Testing framework
 - **React Testing Library** - Component testing
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+#### Database Connection Problems
+
+**Issue:** Cannot connect to database
+- **Solution:** Ensure Docker container is running: `docker-compose ps`
+- **Solution:** Check database credentials in environment variables
+- **Solution:** Verify database is accessible: `python tests/test_connection.py`
+
+**Issue:** Database schema errors
+- **Solution:** Re-run schema setup: `python scripts/execute_schema.py`
+- **Solution:** Check database logs: `docker-compose logs db`
+
+#### CORS Configuration Issues
+
+**Issue:** Frontend cannot connect to API (CORS errors)
+- **Solution:** Configure `CORS_ORIGINS` environment variable with your frontend URL
+- **Solution:** For development: `CORS_ORIGINS="http://localhost:3000,http://127.0.0.1:3000"`
+- **Solution:** See [Environment Variables Documentation](docs/environment-variables.md) for details
+
+**Issue:** API requests blocked by browser
+- **Solution:** Ensure backend CORS configuration includes your frontend origin
+- **Solution:** Check browser console for specific CORS error messages
+
+#### API Server Issues
+
+**Issue:** API server won't start
+- **Solution:** Check if port 8000 is already in use
+- **Solution:** Verify all dependencies are installed: `pip install -r requirements.txt`
+- **Solution:** Check logs for specific error messages
+
+**Issue:** Scheduler not working
+- **Solution:** Verify `ENABLE_EMBEDDED_SCHEDULER` is set to `true` (default)
+- **Solution:** Check scheduler logs in API server output
+- **Solution:** Verify database connection pool is initialized
+
+#### Frontend Issues
+
+**Issue:** Frontend cannot connect to backend
+- **Solution:** Verify backend is running on the configured port
+- **Solution:** Check `VITE_API_BASE_URL` in frontend `.env` file
+- **Solution:** Check browser console for network errors
+
+**Issue:** WebSocket connection fails
+- **Solution:** Verify `VITE_WS_URL` is correctly configured
+- **Solution:** Ensure WebSocket endpoint is accessible
+- **Solution:** Check backend WebSocket configuration
+
+### Getting Help
+
+If you encounter issues not covered here:
+1. Check the [GitHub Issues](https://github.com/your-repo/issues) for similar problems
+2. Review the [Development Standards](docs/development-standards.md) for code-related issues
+3. Check the [Testing Standards](docs/testing-standards.md) for test-related issues
+4. Review the [Software Architecture](docs/software-architecture.md) for system design questions
+
+## Architecture Overview
+
+### High-Level System Architecture
+
+The Investment Platform consists of several key components:
+
+```
+┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
+│   Frontend      │◄───────►│   API Server    │◄───────►│   PostgreSQL    │
+│   (React)       │  HTTP   │   (FastAPI)     │  SQL    │   (TimescaleDB) │
+└─────────────────┘         └─────────────────┘         └─────────────────┘
+                                      │
+                                      │
+                            ┌─────────┴─────────┐
+                            │                   │
+                    ┌───────▼──────┐   ┌───────▼──────┐
+                    │   Scheduler  │   │  Collectors  │
+                    │   Service    │   │  (yfinance,  │
+                    │              │   │   Coinbase)  │
+                    └──────────────┘   └──────────────┘
+```
+
+### Component Descriptions
+
+**Frontend (React + TypeScript)**
+- User interface for managing investments and viewing data
+- Real-time updates via WebSocket connections
+- Responsive design with Tailwind CSS
+
+**API Server (FastAPI)**
+- RESTful API for all platform operations
+- WebSocket server for real-time data streaming
+- Embedded scheduler for automated data collection
+- Authentication and authorization (when implemented)
+
+**Database (PostgreSQL + TimescaleDB)**
+- Stores all financial data, assets, and job configurations
+- TimescaleDB for time-series data optimization
+- Hypertables for efficient time-series queries
+
+**Scheduler Service**
+- Manages scheduled data collection jobs
+- Handles job dependencies and retries
+- Persistent job storage in database
+
+**Data Collectors**
+- Stock data: yfinance
+- Cryptocurrency: Coinbase Advanced API
+- Economic indicators: FRED API
+- Extensible architecture for additional collectors
+
+### Data Flow
+
+1. **Scheduled Collection:**
+   - Scheduler triggers job at configured time
+   - Collector fetches data from external API
+   - Data is validated and loaded into database
+   - Job execution status is recorded
+
+2. **Manual Collection:**
+   - User triggers collection via API endpoint
+   - Job is created and executed immediately
+   - Results are returned to user
+   - Job status is tracked in database
+
+3. **Real-Time Updates:**
+   - Frontend connects to WebSocket endpoint
+   - Backend streams updates as data is collected
+   - Frontend updates UI in real-time
+
+### Key Design Principles
+
+- **Modular Architecture:** Components are loosely coupled and can be developed independently
+- **API-First Design:** All functionality is accessible via RESTful API
+- **Database-Backed Persistence:** Job state and data persist across restarts
+- **Extensible Collectors:** Easy to add new data sources
+- **Type Safety:** TypeScript (frontend) and type hints (backend) for reliability
+
+## Development Workflow
+
+### How to Run Tests
+
+**Backend Tests:**
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=src/investment_platform --cov-report=html
+
+# Run specific test file
+pytest tests/test_api_routers_scheduler.py -v
+
+# Run tests matching a pattern
+pytest -k "test_create_job" -v
+```
+
+**Frontend Tests:**
+```bash
+cd frontend
+
+# Run all tests
+npm test
+
+# Run with coverage
+npm run test:coverage
+
+# Run in watch mode
+npm run test:watch
+
+# Run E2E tests
+npm run test:e2e
+```
+
+### How to Contribute
+
+1. **Create a feature branch:**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Make your changes:**
+   - Follow the [Development Standards](docs/development-standards.md)
+   - Write tests for new functionality
+   - Ensure all tests pass
+
+3. **Format and lint:**
+   ```bash
+   # Backend
+   black src/ tests/
+   flake8 src/ tests/
+   mypy src/
+
+   # Frontend
+   cd frontend
+   npm run format
+   npm run lint
+   ```
+
+4. **Run tests:**
+   ```bash
+   # Backend
+   pytest
+
+   # Frontend
+   cd frontend
+   npm test
+   ```
+
+5. **Commit your changes:**
+   ```bash
+   git add .
+   git commit -m "feat: add your feature description"
+   ```
+
+6. **Push and create pull request:**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+### Code Review Process
+
+1. **Pull Request Requirements:**
+   - All tests must pass
+   - Code must be formatted (Black for Python, Prettier for TypeScript)
+   - Code must pass linting checks
+   - Test coverage must not decrease
+   - Code must follow development standards
+
+2. **Review Checklist:**
+   - Code follows project standards
+   - Tests are comprehensive
+   - Documentation is updated
+   - No security vulnerabilities introduced
+   - Performance considerations addressed
+
+3. **After Review:**
+   - Address review comments
+   - Update tests if needed
+   - Re-run CI/CD pipeline
+   - Merge when approved
+
+### Development Standards
+
+All code must adhere to:
+- [Development Standards](docs/development-standards.md) - Backend Python code standards
+- [UX Standards](docs/ux-standards.md) - Frontend React/TypeScript standards
+- [Testing Standards](docs/testing-standards.md) - Test requirements and patterns
+- [Software Architecture](docs/software-architecture.md) - System design principles
 
 ## License
 

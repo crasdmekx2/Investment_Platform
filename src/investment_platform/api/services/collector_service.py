@@ -2,6 +2,7 @@
 
 import logging
 from typing import Dict, Any, List, Optional
+from investment_platform.api.constants import DEFAULT_SEARCH_LIMIT
 from investment_platform.collectors import (
     StockCollector,
     CryptoCollector,
@@ -28,7 +29,7 @@ COLLECTOR_CLASSES = {
 def get_collector_metadata() -> Dict[str, Any]:
     """
     Get metadata for all available collector types.
-    
+
     Returns:
         Dictionary mapping asset types to their capabilities
     """
@@ -38,8 +39,19 @@ def get_collector_metadata() -> Dict[str, Any]:
             "description": "Stock market data (OHLCV, dividends, splits)",
             "collector_class": "StockCollector",
             "intervals": [
-                "1m", "2m", "5m", "15m", "30m", "60m", "90m",
-                "1h", "1d", "5d", "1wk", "1mo", "3mo"
+                "1m",
+                "2m",
+                "5m",
+                "15m",
+                "30m",
+                "60m",
+                "90m",
+                "1h",
+                "1d",
+                "5d",
+                "1wk",
+                "1mo",
+                "3mo",
             ],
             "default_interval": "1d",
             "supports_dividends": True,
@@ -81,8 +93,19 @@ def get_collector_metadata() -> Dict[str, Any]:
             "description": "Commodity futures data (OHLCV)",
             "collector_class": "CommodityCollector",
             "intervals": [
-                "1m", "2m", "5m", "15m", "30m", "60m", "90m",
-                "1h", "1d", "5d", "1wk", "1mo", "3mo"
+                "1m",
+                "2m",
+                "5m",
+                "15m",
+                "30m",
+                "60m",
+                "90m",
+                "1h",
+                "1d",
+                "5d",
+                "1wk",
+                "1mo",
+                "3mo",
             ],
             "default_interval": "1d",
             "common_symbols": [
@@ -104,50 +127,52 @@ def get_collector_metadata() -> Dict[str, Any]:
             ],
         },
     }
-    
+
     return metadata
 
 
 def get_collector_options(asset_type: str) -> Dict[str, Any]:
     """
     Get collector-specific options for an asset type.
-    
+
     Args:
         asset_type: Type of asset (stock, crypto, etc.)
-        
+
     Returns:
         Dictionary with collector-specific options
-        
+
     Raises:
         ValueError: If asset_type is not supported
     """
     if asset_type not in COLLECTOR_CLASSES:
         raise ValueError(f"Unsupported asset type: {asset_type}")
-    
+
     metadata = get_collector_metadata()
     return metadata.get(asset_type, {})
 
 
-def search_assets(asset_type: str, query: str, limit: int = 50) -> List[Dict[str, Any]]:
+def search_assets(
+    asset_type: str, query: str, limit: int = DEFAULT_SEARCH_LIMIT
+) -> List[Dict[str, Any]]:
     """
     Search for assets/symbols of a given type.
-    
+
     Note: This is a basic implementation. In production, this would
     query a database of known assets or use API search endpoints.
-    
+
     Args:
         asset_type: Type of asset to search
         query: Search query (symbol or name)
         limit: Maximum number of results
-        
+
     Returns:
         List of asset dictionaries with symbol, name, etc.
     """
     query_lower = query.lower().strip()
-    
+
     # Basic symbol suggestions based on asset type
     suggestions = []
-    
+
     if asset_type == "stock":
         # Common stock symbols
         common_stocks = [
@@ -162,8 +187,12 @@ def search_assets(asset_type: str, query: str, limit: int = 50) -> List[Dict[str
             {"symbol": "V", "name": "Visa Inc."},
             {"symbol": "JNJ", "name": "Johnson & Johnson"},
         ]
-        suggestions = [s for s in common_stocks if query_lower in s["symbol"].lower() or query_lower in s["name"].lower()]
-    
+        suggestions = [
+            s
+            for s in common_stocks
+            if query_lower in s["symbol"].lower() or query_lower in s["name"].lower()
+        ]
+
     elif asset_type == "crypto":
         # Common crypto pairs
         common_crypto = [
@@ -176,8 +205,12 @@ def search_assets(asset_type: str, query: str, limit: int = 50) -> List[Dict[str
             {"symbol": "DOGE-USD", "name": "Dogecoin / US Dollar"},
             {"symbol": "DOT-USD", "name": "Polkadot / US Dollar"},
         ]
-        suggestions = [s for s in common_crypto if query_lower in s["symbol"].lower() or query_lower in s["name"].lower()]
-    
+        suggestions = [
+            s
+            for s in common_crypto
+            if query_lower in s["symbol"].lower() or query_lower in s["name"].lower()
+        ]
+
     elif asset_type == "forex":
         # Common forex pairs
         common_forex = [
@@ -189,8 +222,12 @@ def search_assets(asset_type: str, query: str, limit: int = 50) -> List[Dict[str
             {"symbol": "EUR_GBP", "name": "Euro / British Pound"},
             {"symbol": "EUR_JPY", "name": "Euro / Japanese Yen"},
         ]
-        suggestions = [s for s in common_forex if query_lower in s["symbol"].lower() or query_lower in s["name"].lower()]
-    
+        suggestions = [
+            s
+            for s in common_forex
+            if query_lower in s["symbol"].lower() or query_lower in s["name"].lower()
+        ]
+
     elif asset_type == "bond":
         # FRED series IDs
         bond_series = [
@@ -199,8 +236,12 @@ def search_assets(asset_type: str, query: str, limit: int = 50) -> List[Dict[str
             {"symbol": "DGS30", "name": "30-Year Treasury Bond"},
             {"symbol": "DFII10", "name": "10-Year TIPS"},
         ]
-        suggestions = [s for s in bond_series if query_lower in s["symbol"].lower() or query_lower in s["name"].lower()]
-    
+        suggestions = [
+            s
+            for s in bond_series
+            if query_lower in s["symbol"].lower() or query_lower in s["name"].lower()
+        ]
+
     elif asset_type == "commodity":
         # Commodity futures
         commodities = [
@@ -212,8 +253,12 @@ def search_assets(asset_type: str, query: str, limit: int = 50) -> List[Dict[str
             {"symbol": "ZW=F", "name": "Wheat Futures"},
             {"symbol": "ZC=F", "name": "Corn Futures"},
         ]
-        suggestions = [s for s in commodities if query_lower in s["symbol"].lower() or query_lower in s["name"].lower()]
-    
+        suggestions = [
+            s
+            for s in commodities
+            if query_lower in s["symbol"].lower() or query_lower in s["name"].lower()
+        ]
+
     elif asset_type == "economic_indicator":
         # FRED economic indicators
         indicators = [
@@ -224,8 +269,12 @@ def search_assets(asset_type: str, query: str, limit: int = 50) -> List[Dict[str
             {"symbol": "FEDFUNDS", "name": "Federal Funds Rate"},
             {"symbol": "INDPRO", "name": "Industrial Production Index"},
         ]
-        suggestions = [s for s in indicators if query_lower in s["symbol"].lower() or query_lower in s["name"].lower()]
-    
+        suggestions = [
+            s
+            for s in indicators
+            if query_lower in s["symbol"].lower() or query_lower in s["name"].lower()
+        ]
+
     return suggestions[:limit]
 
 
@@ -236,54 +285,70 @@ def validate_collection_params(
 ) -> Dict[str, Any]:
     """
     Validate collection parameters before scheduling.
-    
+
     Args:
         asset_type: Type of asset
         symbol: Asset symbol
         collector_kwargs: Optional collector-specific parameters
-        
+
     Returns:
         Dictionary with validation result and any errors
-        
+
     Raises:
         ValueError: If validation fails
     """
     errors = []
-    
+
     if asset_type not in COLLECTOR_CLASSES:
         errors.append(f"Unsupported asset type: {asset_type}")
-    
+
     if not symbol or not symbol.strip():
         errors.append("Symbol is required")
-    
+
     # Validate collector-specific parameters
     if collector_kwargs:
         if asset_type == "crypto":
             valid_granularities = [
-                "ONE_MINUTE", "FIVE_MINUTE", "FIFTEEN_MINUTE",
-                "ONE_HOUR", "SIX_HOUR", "ONE_DAY"
+                "ONE_MINUTE",
+                "FIVE_MINUTE",
+                "FIFTEEN_MINUTE",
+                "ONE_HOUR",
+                "SIX_HOUR",
+                "ONE_DAY",
             ]
             granularity = collector_kwargs.get("granularity")
             if granularity and granularity not in valid_granularities:
-                errors.append(f"Invalid granularity: {granularity}. Must be one of {valid_granularities}")
-        
+                errors.append(
+                    f"Invalid granularity: {granularity}. Must be one of {valid_granularities}"
+                )
+
         elif asset_type == "stock":
             valid_intervals = [
-                "1m", "2m", "5m", "15m", "30m", "60m", "90m",
-                "1h", "1d", "5d", "1wk", "1mo", "3mo"
+                "1m",
+                "2m",
+                "5m",
+                "15m",
+                "30m",
+                "60m",
+                "90m",
+                "1h",
+                "1d",
+                "5d",
+                "1wk",
+                "1mo",
+                "3mo",
             ]
             interval = collector_kwargs.get("interval")
             if interval and interval not in valid_intervals:
                 errors.append(f"Invalid interval: {interval}. Must be one of {valid_intervals}")
-    
+
     if errors:
         return {
             "valid": False,
             "errors": errors,
         }
-    
+
     return {
         "valid": True,
         "errors": [],
     }
-

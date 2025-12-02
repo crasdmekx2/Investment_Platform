@@ -4,7 +4,15 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request, Path
+
+from investment_platform.api.constants import (
+    DEFAULT_PAGE_LIMIT,
+    DEFAULT_PAGE_OFFSET,
+    DEFAULT_EXECUTION_LIMIT,
+    MAX_PAGE_LIMIT,
+    MIN_PAGE_LIMIT,
+)
 
 from investment_platform.api.models.scheduler import (
     JobCreate,
@@ -50,14 +58,62 @@ def get_scheduler(request: Request) -> PersistentScheduler:
     return scheduler
 
 
-@router.get("/jobs", response_model=List[JobResponse])
+@router.get(
+    "/jobs",
+    response_model=List[JobResponse],
+    summary="List scheduled jobs",
+    description="Retrieve a list of scheduled jobs with optional filtering by status and asset type.",
+    responses={
+        200: {
+            "description": "List of jobs retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "job_id": "stock_AAPL_1234567890_abc123",
+                            "symbol": "AAPL",
+                            "asset_type": "stock",
+                            "trigger_type": "cron",
+                            "trigger_config": {"type": "cron", "hour": "9", "minute": "0"},
+                            "status": "active",
+                            "created_at": "2024-01-01T00:00:00Z",
+                        }
+                    ]
+                }
+            },
+        },
+        400: {"description": "Invalid request parameters"},
+        500: {"description": "Internal server error"},
+    },
+)
 async def list_jobs(
-    status: Optional[str] = Query(None, description="Filter by status"),
-    asset_type: Optional[str] = Query(None, description="Filter by asset type"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of results"),
-    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    status: Optional[str] = Query(
+        None,
+        description="Filter by job status",
+        examples=["active", "paused", "pending", "completed", "failed"],
+    ),
+    asset_type: Optional[str] = Query(
+        None,
+        description="Filter by asset type",
+        examples=["stock", "crypto", "forex", "bond", "commodity", "economic_indicator"],
+    ),
+    limit: int = Query(
+        DEFAULT_PAGE_LIMIT,
+        ge=MIN_PAGE_LIMIT,
+        le=MAX_PAGE_LIMIT,
+        description="Maximum number of results",
+        example=100,
+    ),
+    offset: int = Query(
+        DEFAULT_PAGE_OFFSET, ge=0, description="Offset for pagination", example=0
+    ),
 ) -> List[JobResponse]:
-    """List all scheduled jobs with optional filters."""
+    """
+    List all scheduled jobs with optional filters.
+    
+    Returns a paginated list of scheduled jobs. Use query parameters to filter
+    by status or asset type. Results are ordered by creation date (newest first).
+    """
     try:
         jobs = scheduler_svc.list_jobs(
             status=status,
@@ -68,24 +124,57 @@ async def list_jobs(
         return jobs
     except ValueError as e:
         logger.warning(f"Invalid parameters for list_jobs: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Unexpected error listing jobs: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
-@router.get("/jobs/{job_id}", response_model=JobResponse)
-async def get_job(job_id: str) -> JobResponse:
-    """Get a scheduled job by ID."""
+@router.get(
+    "/jobs/{job_id}",
+    response_model=JobResponse,
+    summary="Get job by ID",
+    description="Retrieve details of a specific scheduled job by its ID.",
+    responses={
+        200: {"description": "Job retrieved successfully"},
+        404: {"description": "Job not found"},
+    },
+)
+async def get_job(
+    job_id: str = Path(..., description="Unique job identifier", example="stock_AAPL_1234567890_abc123")
+) -> JobResponse:
+    """
+    Get a scheduled job by ID.
+    
+    Returns the complete job configuration including trigger settings,
+    dependencies, and current status.
+    """
     job = scheduler_svc.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
     return job
 
 
-@router.post("/jobs", response_model=JobResponse, status_code=201)
+@router.post(
+    "/jobs",
+    response_model=JobResponse,
+    status_code=201,
+    summary="Create a new scheduled job",
+    description="Create a new scheduled job for automated data collection.",
+    responses={
+        201: {"description": "Job created successfully"},
+        400: {"description": "Invalid request data"},
+        500: {"description": "Internal server error"},
+    },
+)
 async def create_job(job_data: JobCreate, request: Request) -> JobResponse:
-    """Create a new scheduled job."""
+    """
+    Create a new scheduled job.
+    
+    Creates a new scheduled job that will automatically collect data for the
+    specified asset at the configured intervals. The job can be triggered
+    immediately or scheduled for future execution.
+    """
     try:
         job = scheduler_svc.create_job(job_data)
 
@@ -118,12 +207,31 @@ async def create_job(job_data: JobCreate, request: Request) -> JobResponse:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Unexpected error creating job: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
-@router.put("/jobs/{job_id}", response_model=JobResponse)
-async def update_job(job_id: str, job_data: JobUpdate, request: Request) -> JobResponse:
-    """Update a scheduled job."""
+@router.put(
+    "/jobs/{job_id}",
+    response_model=JobResponse,
+    summary="Update a scheduled job",
+    description="Update an existing scheduled job's configuration.",
+    responses={
+        200: {"description": "Job updated successfully"},
+        404: {"description": "Job not found"},
+        400: {"description": "Invalid request data"},
+    },
+)
+async def update_job(
+    job_id: str = Path(..., description="Unique job identifier"),
+    job_data: JobUpdate = ...,
+    request: Request = ...,
+) -> JobResponse:
+    """
+    Update a scheduled job.
+    
+    Updates the configuration of an existing scheduled job. Only provided
+    fields will be updated. The scheduler will be notified of changes.
+    """
     job = scheduler_svc.update_job(job_id, job_data)
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
@@ -226,6 +334,8 @@ async def trigger_job(
             logger.error(
                 f"Unexpected error in background job execution for {job_id}: {e}", exc_info=True
             )
+            # Note: Exception is logged but not re-raised in background task
+            # to prevent background task failure from affecting API response
 
     # Add job execution to background tasks
     background_tasks.add_task(execute_job)
@@ -242,8 +352,8 @@ async def trigger_job(
 @router.get("/jobs/{job_id}/executions", response_model=List[JobExecutionResponse])
 async def get_job_executions(
     job_id: str,
-    limit: int = Query(50, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_EXECUTION_LIMIT, ge=MIN_PAGE_LIMIT, le=MAX_PAGE_LIMIT),
+    offset: int = Query(DEFAULT_PAGE_OFFSET, ge=0),
 ) -> List[JobExecutionResponse]:
     """Get execution history for a job."""
     job = scheduler_svc.get_job(job_id)
@@ -263,8 +373,13 @@ async def get_job_executions(
 async def list_templates(
     asset_type: Optional[str] = Query(None, description="Filter by asset type"),
     is_public: Optional[bool] = Query(None, description="Filter by public/private templates"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of results"),
-    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    limit: int = Query(
+        DEFAULT_PAGE_LIMIT,
+        ge=MIN_PAGE_LIMIT,
+        le=MAX_PAGE_LIMIT,
+        description="Maximum number of results",
+    ),
+    offset: int = Query(DEFAULT_PAGE_OFFSET, ge=0, description="Offset for pagination"),
 ) -> List[JobTemplateResponse]:
     """List all job templates with optional filters."""
     try:
@@ -280,7 +395,7 @@ async def list_templates(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Unexpected error listing templates: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.get("/templates/{template_id}", response_model=JobTemplateResponse)
@@ -306,7 +421,7 @@ async def create_template(template_data: JobTemplateCreate) -> JobTemplateRespon
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Unexpected error creating template: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.put("/templates/{template_id}", response_model=JobTemplateResponse)
@@ -352,4 +467,4 @@ async def get_analytics(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Unexpected error getting analytics: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
