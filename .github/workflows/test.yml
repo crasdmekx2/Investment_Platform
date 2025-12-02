@@ -224,8 +224,7 @@ jobs:
                 const title = `[${severity}] Test Failure: ${testIdentifier}`;
                 
                 // Create issue body
-                const codeBlockStart = '```';
-                const codeBlockEnd = '```';
+                const codeBlock = String.fromCharCode(96, 96, 96);
                 const body = `## Description
 
 Test failure detected in CI/CD pipeline. This test is failing and needs investigation.
@@ -247,9 +246,9 @@ The test should pass successfully.
 The test is failing with the following error:
 
 ## Error Message
-${codeBlockStart}
+${codeBlock}
 ${errorType}: ${errorMessage.substring(0, 1000)}
-${codeBlockEnd}
+${codeBlock}
 
 ## Severity
 **${severity}** - ${severity === 'Critical' ? 'Blocks critical functionality' : severity === 'High' ? 'Blocks important functionality' : 'Affects non-critical functionality'}
@@ -474,8 +473,7 @@ ${codeBlockEnd}
                 const title = `[${severity}] Test Failure: ${testIdentifier}`;
                 
                 // Create issue body
-                const codeBlockStart = '```';
-                const codeBlockEnd = '```';
+                const codeBlock = String.fromCharCode(96, 96, 96);
                 const body = `## Description
 
 Test failure detected in CI/CD pipeline. This test is failing and needs investigation.
@@ -497,9 +495,9 @@ The test should pass successfully.
 The test is failing with the following error:
 
 ## Error Message
-${codeBlockStart}
+${codeBlock}
 ${errorType}: ${errorMessage.substring(0, 1000)}
-${codeBlockEnd}
+${codeBlock}
 
 ## Severity
 **${severity}** - ${severity === 'Critical' ? 'Blocks critical functionality' : severity === 'High' ? 'Blocks important functionality' : 'Affects non-critical functionality'}
